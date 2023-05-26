@@ -104,7 +104,8 @@ impl WeightedRandomizer {
 
     pub fn subtract_from_weight(&mut self, value: usize, weight_to_subtract: usize) {
         let idx = self.true_find(value);
-        let capped_weight_to_subtract = std::cmp::min(weight_to_subtract, self.value_weight_vec[idx].weight);
+        let capped_weight_to_subtract =
+            std::cmp::min(weight_to_subtract, self.value_weight_vec[idx].weight);
         self.total_weight -= capped_weight_to_subtract;
         self.value_weight_vec[idx].weight -= capped_weight_to_subtract;
     }

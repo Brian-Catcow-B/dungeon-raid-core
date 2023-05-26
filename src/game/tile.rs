@@ -1,6 +1,8 @@
 use std::ops::Add;
+use std::ops::Sub;
 
-enum Wind8 {
+#[derive(Copy, Clone)]
+pub enum Wind8 {
     U,
     UR,
     R,
@@ -31,9 +33,38 @@ impl TryFrom<u8> for Wind8 {
     }
 }
 
+impl TryFrom<TilePosition> for Wind8 {
+    type Error = &'static str;
+
+    fn try_from(value: TilePosition) -> Result<Self, Self::Error> {
+        match value.y {
+            -1 => match value.x {
+                -1 => Ok(Wind8::UL),
+                0 => Ok(Wind8::U),
+                1 => Ok(Wind8::UR),
+                _ => Err("cannot convert TilePosition to Wind8 for values of x outside of [-1, 1]"),
+            },
+            0 => match value.x {
+                -1 => Ok(Wind8::L),
+                0 => Ok(Wind8::None),
+                1 => Ok(Wind8::R),
+                _ => Err("cannot convert TilePosition to Wind8 for values of x outside of [-1, 1]"),
+            },
+            1 => match value.x {
+                -1 => Ok(Wind8::DL),
+                0 => Ok(Wind8::D),
+                1 => Ok(Wind8::DR),
+                _ => Err("cannot convert TilePosition to Wind8 for values of x outside of [-1, 1]"),
+            },
+            _ => Err("cannot convert TilePosition to Wind8 for values of x outside of [-1, 1]"),
+        }
+    }
+}
+
+#[derive(PartialEq, Copy, Clone)]
 pub struct TilePosition {
-    y: isize,
-    x: isize,
+    pub y: isize,
+    pub x: isize,
 }
 
 impl Add for TilePosition {
@@ -43,6 +74,17 @@ impl Add for TilePosition {
         Self {
             y: self.y + other.y,
             x: self.x + other.x,
+        }
+    }
+}
+
+impl Sub for TilePosition {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            y: self.y - other.y,
+            x: self.x - other.x,
         }
     }
 }
@@ -69,7 +111,7 @@ impl From<Wind8> for TilePosition {
     }
 }
 
-enum TileType {
+pub enum TileType {
     None,
     Heart,
     Shield,
@@ -79,15 +121,15 @@ enum TileType {
 }
 
 pub struct Tile {
-    tile_type: TileType,
-    connected_to_tile: Wind8,
+    pub tile_type: TileType,
+    pub next_selection: Wind8,
 }
 
 impl Default for Tile {
     fn default() -> Tile {
         Tile {
             tile_type: TileType::None,
-            connected_to_tile: Wind8::None,
+            next_selection: Wind8::None,
         }
     }
 }
@@ -96,7 +138,7 @@ impl Tile {
     fn new(tile_type: TileType) -> Tile {
         Tile {
             tile_type,
-            connected_to_tile: Wind8::None,
+            next_selection: Wind8::None,
         }
     }
 }

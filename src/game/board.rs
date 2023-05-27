@@ -77,7 +77,7 @@ impl Board {
                             Wind8::None => {
                                 match Wind8::try_from(position_to_select - p) {
                                     Ok(w8) => match w8 {
-                                        Wind8::None => {}
+                                        Wind8::None => return false,
                                         _ => {
                                             self.tiles[p.y as usize][p.x as usize].next_selection =
                                                 w8;
@@ -94,7 +94,7 @@ impl Board {
                                     return true;
                                 }
                             }
-                        }
+                        };
                     } else {
                         unreachable!("in select_tile, one of the tiles in the selection trail points off the board; position: (x, y) {} {}", p.x, p.y);
                     }
@@ -192,7 +192,7 @@ impl Board {
                 };
             }
             for i in 0..num_falling {
-                self.tiles[num_falling - i][x].tile_type = TileType::try_from(self.tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR)).expect(TT_EXP_ERR_STR);
+                self.tiles[num_falling - i - 1][x].tile_type = TileType::try_from(self.tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR)).expect(TT_EXP_ERR_STR);
             }
         }
     }

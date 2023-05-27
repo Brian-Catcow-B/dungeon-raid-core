@@ -94,7 +94,7 @@ impl Board {
                             }
                         }
                     } else {
-                        unreachable!("in select_tile, one of the tiles in the selection trail points off the board");
+                        unreachable!("in select_tile, one of the tiles in the selection trail points off the board; position: (x, y) {} {}", p.x, p.y);
                     }
                 }
             }

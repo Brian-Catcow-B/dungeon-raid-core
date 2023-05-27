@@ -112,6 +112,7 @@ impl From<Wind8> for TilePosition {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum TileType {
     Heart,
     Shield,
@@ -155,6 +156,7 @@ impl TryFrom<TileType> for Weight {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Tile {
     pub tile_type: TileType,
     pub next_selection: Wind8,

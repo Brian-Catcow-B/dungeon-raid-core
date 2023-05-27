@@ -1,27 +1,40 @@
-use crate::game::randomizer::WeightedRandomizer;
-use crate::game::tile::{Tile, TilePosition, Wind8};
+use crate::game::randomizer::{Weight, WeightedRandomizer};
+use crate::game::tile::{Tile, TilePosition, TileType, Wind8};
 
 struct Board {
     // access by [y][x] where [0][0] is top left corner
     tiles: Vec<Vec<Tile>>,
-    randomizer: WeightedRandomizer,
+    tile_randomizer: WeightedRandomizer,
     selection_start: Option<TilePosition>,
 }
 
 impl Board {
     pub fn new(w: usize, h: usize) -> Board {
+        // tiles
+
+        let mut tile_randomizer = WeightedRandomizer::default();
+        for tt in 0..(TileType::COUNT as usize) {
+            let tile_type =
+                TileType::try_from(tt).expect("TileType::try_from errored where it never should");
+            let default_weight = Weight::try_from(tile_type)
+                .expect("Weight::try_from errored where it never should");
+            tile_randomizer.set_weight(tt, default_weight);
+        }
+
         let mut tiles = vec![];
         for _ in 0..w {
             let new_idx = tiles.len();
             tiles.push(vec![]);
             for _ in 0..h {
-                tiles[new_idx].push(Tile::default());
+                let weighted_random_value = tile_randomizer.weighted_random().expect("weighted_random should only return None if nothing has been added to the randomizer");
+                let tile_type = TileType::try_from(weighted_random_value).expect("TileType::TryFrom<usize> shouldn't fail because the usize is from a WeightedRandomizer with only the TileType's added");
+                tiles[new_idx].push(Tile::new(tile_type));
             }
         }
 
         Board {
             tiles,
-            randomizer: WeightedRandomizer::default(),
+            tile_randomizer: WeightedRandomizer::default(),
             selection_start: None,
         }
     }
@@ -58,22 +71,23 @@ impl Board {
                             Wind8::None => {
                                 match Wind8::try_from(position_to_select - p) {
                                     Ok(w8) => match w8 {
-                                        Wind8::None => {},
+                                        Wind8::None => {}
                                         _ => {
-                                            self.tiles[p.y as usize][p.x as usize].next_selection = w8;
+                                            self.tiles[p.y as usize][p.x as usize].next_selection =
+                                                w8;
                                             return true;
-                                        },
-                                    }
+                                        }
+                                    },
                                     Err(_) => return false,
                                 };
-                            },
+                            }
                             _ => {
                                 p = p + TilePosition::from(relative_next);
                                 if p == position_to_select {
                                     self.remove_selection_starting_at(p);
                                     return true;
                                 }
-                            },
+                            }
                         }
                     } else {
                         unreachable!("in select_tile, one of the tiles in the selection trail points off the board");
@@ -105,8 +119,8 @@ impl Board {
                         unreachable!("in get_selection_trail, one of the tiles in the selection trail points off the board");
                     }
                 }
-            },
-            None => {},
+            }
+            None => {}
         };
         trail
     }

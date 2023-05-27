@@ -1,3 +1,4 @@
+use crate::game::randomizer::Weight;
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -112,12 +113,46 @@ impl From<Wind8> for TilePosition {
 }
 
 pub enum TileType {
-    None,
     Heart,
     Shield,
     Coin,
+    Sword,
     Enemy,
     Boss,
+    COUNT,
+    None,
+}
+
+impl TryFrom<usize> for TileType {
+    type Error = &'static str;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::Heart),
+            1 => Ok(Self::Shield),
+            2 => Ok(Self::Coin),
+            3 => Ok(Self::Sword),
+            4 => Ok(Self::Enemy),
+            5 => Ok(Self::Boss),
+            _ => Err("Invalid value for converting usize->TileType"),
+        }
+    }
+}
+
+impl TryFrom<TileType> for Weight {
+    type Error = &'static str;
+
+    fn try_from(value: TileType) -> Result<Self, Self::Error> {
+        match value {
+            TileType::Heart => Ok(100),
+            TileType::Shield => Ok(100),
+            TileType::Coin => Ok(100),
+            TileType::Sword => Ok(80),
+            TileType::Enemy => Ok(60),
+            TileType::Boss => Ok(0),
+            _ => Err("Invalid value for converting TileType->Weight"),
+        }
+    }
 }
 
 pub struct Tile {
@@ -135,7 +170,7 @@ impl Default for Tile {
 }
 
 impl Tile {
-    fn new(tile_type: TileType) -> Tile {
+    pub fn new(tile_type: TileType) -> Tile {
         Tile {
             tile_type,
             next_selection: Wind8::None,

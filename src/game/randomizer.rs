@@ -1,6 +1,8 @@
+pub type Weight = usize;
+
 struct ValueWeight {
     value: usize,
-    weight: usize,
+    weight: Weight,
 }
 
 impl ValueWeight {
@@ -59,7 +61,10 @@ impl WeightedRandomizer {
                 return Some(var.value);
             }
         }
-        unreachable!("random_num: {}, running_sum: {}", random_num, running_sum);
+        unreachable!(
+            "weighted_random error: escaped for loop; random_num: {}, running_sum: {}",
+            random_num, running_sum
+        );
     }
 
     fn true_find(&mut self, value: usize) -> usize {
@@ -90,19 +95,19 @@ impl WeightedRandomizer {
         }
     }
 
-    pub fn set_weight(&mut self, value: usize, new_weight: usize) {
+    pub fn set_weight(&mut self, value: usize, new_weight: Weight) {
         let idx = self.true_find(value);
         self.total_weight += new_weight - self.value_weight_vec[idx].weight;
         self.value_weight_vec[idx].weight = new_weight;
     }
 
-    pub fn add_to_weight(&mut self, value: usize, weight_to_add: usize) {
+    pub fn add_to_weight(&mut self, value: usize, weight_to_add: Weight) {
         let idx = self.true_find(value);
         self.total_weight += weight_to_add;
         self.value_weight_vec[idx].weight += weight_to_add;
     }
 
-    pub fn subtract_from_weight(&mut self, value: usize, weight_to_subtract: usize) {
+    pub fn subtract_from_weight(&mut self, value: usize, weight_to_subtract: Weight) {
         let idx = self.true_find(value);
         let capped_weight_to_subtract =
             std::cmp::min(weight_to_subtract, self.value_weight_vec[idx].weight);

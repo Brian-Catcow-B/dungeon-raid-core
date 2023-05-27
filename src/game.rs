@@ -10,10 +10,13 @@ pub struct Game {
     board: Board,
 }
 
+pub const DEFAULT_BOARD_WIDTH: usize = 6;
+pub const DEFAULT_BOARD_HEIGHT: usize = 6;
+
 impl Default for Game {
     fn default() -> Game {
         Game {
-            board: Board::new(6, 6),
+            board: Board::new(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT),
         }
     }
 }

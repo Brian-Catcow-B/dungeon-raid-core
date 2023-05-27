@@ -14,7 +14,7 @@ const TT_EXP_ERR_STR: &'static str = "TileType::TryFrom<usize> shouldn't fail be
 
 impl Board {
     pub fn new(w: usize, h: usize) -> Board {
-        // tiles
+        // tile randomizer
 
         let mut tile_randomizer = WeightedRandomizer::default();
         for tt in 0..(TileType::COUNT as usize) {
@@ -24,6 +24,8 @@ impl Board {
                 .expect("Weight::try_from errored where it never should");
             tile_randomizer.set_weight(tt, default_weight);
         }
+
+        // tiles
 
         let mut tiles = vec![];
         for _ in 0..w {
@@ -38,7 +40,7 @@ impl Board {
 
         Board {
             tiles,
-            tile_randomizer: WeightedRandomizer::default(),
+            tile_randomizer,
             selection_start: None,
         }
     }

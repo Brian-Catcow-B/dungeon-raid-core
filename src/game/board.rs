@@ -93,8 +93,9 @@ impl Board {
                                 Ok(w8) => match w8 {
                                     Wind8::None => return false,
                                     _ => {
+                                        let p_next = p + TilePosition::from(relative_next);
                                         if start_tile_type.connects_with(
-                                            self.tiles[p.y as usize][p.x as usize].tile_type,
+                                            self.tiles[p_next.y as usize][p_next.x as usize].tile_type,
                                         ) {
                                             self.tiles[p.y as usize][p.x as usize].next_selection =
                                                 w8;

@@ -112,7 +112,7 @@ impl From<Wind8> for TilePosition {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum TileType {
     Heart,
     Shield,
@@ -152,6 +152,21 @@ impl TryFrom<TileType> for Weight {
             TileType::Enemy => Ok(60),
             TileType::Boss => Ok(0),
             _ => Err("Invalid value for converting TileType->Weight"),
+        }
+    }
+}
+
+impl TileType {
+    pub fn connects_with(self, other: TileType) -> bool {
+        if self == other {
+            return true;
+        }
+        match self {
+            Self::Sword | Self::Enemy | Self::Boss => match other {
+                Self::Sword | Self::Enemy | Self::Boss => true,
+                _ => false,
+            },
+            _ => false,
         }
     }
 }

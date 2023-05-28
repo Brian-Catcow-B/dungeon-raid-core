@@ -71,6 +71,14 @@ impl Board {
     pub fn select_tile(&mut self, position_to_select: TilePosition) -> bool {
         match self.selection_start {
             Some(pos) => {
+                let start_tile_type;
+                if self.position_valid(pos) {
+                    start_tile_type = self.tiles[pos.y as usize][pos.x as usize].tile_type;
+                } else {
+                    unreachable!(
+                        "in select tile, the selection_start is Some(pos) where pos is invalid"
+                    );
+                }
                 let mut p: TilePosition = pos;
                 loop {
                     if p == position_to_select {
@@ -78,27 +86,34 @@ impl Board {
                         return true;
                     }
                     // TODO: make this limited to the number of tiles in case there is some sort of invalid board
-                    if self.position_valid(p) {
-                        let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
-                        match relative_next {
-                            Wind8::None => {
-                                match Wind8::try_from(position_to_select - p) {
-                                    Ok(w8) => match w8 {
-                                        Wind8::None => return false,
-                                        _ => {
+                    let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
+                    match relative_next {
+                        Wind8::None => {
+                            match Wind8::try_from(position_to_select - p) {
+                                Ok(w8) => match w8 {
+                                    Wind8::None => return false,
+                                    _ => {
+                                        if start_tile_type.connects_with(
+                                            self.tiles[p.y as usize][p.x as usize].tile_type,
+                                        ) {
                                             self.tiles[p.y as usize][p.x as usize].next_selection =
                                                 w8;
                                             return true;
+                                        } else {
+                                            return false;
                                         }
-                                    },
-                                    Err(_) => return false,
-                                };
+                                    }
+                                },
+                                Err(_) => return false,
+                            };
+                        }
+                        _ => {
+                            p = p + TilePosition::from(relative_next);
+                            if !self.position_valid(p) {
+                                unreachable!("in select_tile, one of the tiles in the selection trail points off the board; position: (x, y) {} {}", p.x, p.y);
                             }
-                            _ => p = p + TilePosition::from(relative_next),
-                        };
-                    } else {
-                        unreachable!("in select_tile, one of the tiles in the selection trail points off the board; position: (x, y) {} {}", p.x, p.y);
-                    }
+                        }
+                    };
                 }
             }
             None => {

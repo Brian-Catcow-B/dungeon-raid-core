@@ -69,6 +69,9 @@ impl Board {
     }
 
     pub fn select_tile(&mut self, position_to_select: TilePosition) -> bool {
+        if !self.position_valid(position_to_select) {
+            unreachable!("select_tile called with a TilePosition parameter that is invalid");
+        }
         match self.selection_start {
             Some(pos) => {
                 let start_tile_type;
@@ -78,6 +81,12 @@ impl Board {
                     unreachable!(
                         "in select tile, the selection_start is Some(pos) where pos is invalid"
                     );
+                }
+                if !start_tile_type.connects_with(
+                    self.tiles[position_to_select.y as usize][position_to_select.x as usize]
+                        .tile_type,
+                ) {
+                    return false;
                 }
                 let mut p: TilePosition = pos;
                 loop {
@@ -93,16 +102,8 @@ impl Board {
                                 Ok(w8) => match w8 {
                                     Wind8::None => return false,
                                     _ => {
-                                        let p_next = p + TilePosition::from(relative_next);
-                                        if start_tile_type.connects_with(
-                                            self.tiles[p_next.y as usize][p_next.x as usize].tile_type,
-                                        ) {
-                                            self.tiles[p.y as usize][p.x as usize].next_selection =
-                                                w8;
-                                            return true;
-                                        } else {
-                                            return false;
-                                        }
+                                        self.tiles[p.y as usize][p.x as usize].next_selection = w8;
+                                        return true;
                                     }
                                 },
                                 Err(_) => return false,

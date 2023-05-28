@@ -37,4 +37,8 @@ impl Game {
     pub fn get_tile(&self, tile_position: TilePosition) -> Option<Tile> {
         self.board.get_tile(tile_position)
     }
+
+    pub fn get_selection_start(&self) -> Option<TilePosition> {
+        self.board.selection_start
+    }
 }

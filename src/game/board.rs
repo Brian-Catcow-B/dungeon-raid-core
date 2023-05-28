@@ -5,7 +5,7 @@ pub struct Board {
     // access by [y][x] where [0][0] is top left corner
     tiles: Vec<Vec<Tile>>,
     tile_randomizer: WeightedRandomizer,
-    selection_start: Option<TilePosition>,
+    pub selection_start: Option<TilePosition>,
 }
 
 const MIN_DESTRUCTION_SELECTION: usize = 3;

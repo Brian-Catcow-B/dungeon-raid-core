@@ -38,4 +38,3 @@ impl Game {
         self.board.get_tile(tile_position)
     }
 }
-

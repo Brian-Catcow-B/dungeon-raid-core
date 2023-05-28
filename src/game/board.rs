@@ -9,7 +9,8 @@ pub struct Board {
 }
 
 const MIN_DESTRUCTION_SELECTION: usize = 3;
-const WR_EXP_ERR_STR: &'static str = "weighted_random should only return None if nothing has been added to the randomizer";
+const WR_EXP_ERR_STR: &'static str =
+    "weighted_random should only return None if nothing has been added to the randomizer";
 const TT_EXP_ERR_STR: &'static str = "TileType::TryFrom<usize> shouldn't fail because the usize is from a WeightedRandomizer with only the TileType's added";
 
 impl Board {
@@ -32,7 +33,8 @@ impl Board {
             let new_idx = tiles.len();
             tiles.push(vec![]);
             for _ in 0..h {
-                let weighted_random_value = tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR);
+                let weighted_random_value =
+                    tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR);
                 let tile_type = TileType::try_from(weighted_random_value).expect(TT_EXP_ERR_STR);
                 tiles[new_idx].push(Tile::new(tile_type));
             }
@@ -70,6 +72,10 @@ impl Board {
             Some(pos) => {
                 let mut p: TilePosition = pos;
                 loop {
+                    if p == position_to_select {
+                        self.remove_selection_starting_at(p);
+                        return true;
+                    }
                     // TODO: make this limited to the number of tiles in case there is some sort of invalid board
                     if self.position_valid(p) {
                         let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
@@ -87,13 +93,7 @@ impl Board {
                                     Err(_) => return false,
                                 };
                             }
-                            _ => {
-                                p = p + TilePosition::from(relative_next);
-                                if p == position_to_select {
-                                    self.remove_selection_starting_at(p);
-                                    return true;
-                                }
-                            }
+                            _ => p = p + TilePosition::from(relative_next),
                         };
                     } else {
                         unreachable!("in select_tile, one of the tiles in the selection trail points off the board; position: (x, y) {} {}", p.x, p.y);
@@ -182,17 +182,22 @@ impl Board {
                 match self.tiles[y][x].tile_type {
                     TileType::None => {
                         num_falling += 1;
-                    },
+                    }
                     _ => {
                         if num_falling > 0 {
                             self.tiles[y + num_falling][x].tile_type = self.tiles[y][x].tile_type;
                             self.tiles[y][x].tile_type = TileType::None;
                         }
-                    },
+                    }
                 };
             }
             for i in 0..num_falling {
-                self.tiles[num_falling - i - 1][x].tile_type = TileType::try_from(self.tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR)).expect(TT_EXP_ERR_STR);
+                self.tiles[num_falling - i - 1][x].tile_type = TileType::try_from(
+                    self.tile_randomizer
+                        .weighted_random()
+                        .expect(WR_EXP_ERR_STR),
+                )
+                .expect(TT_EXP_ERR_STR);
             }
         }
     }

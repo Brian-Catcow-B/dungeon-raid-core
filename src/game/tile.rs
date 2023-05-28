@@ -2,7 +2,7 @@ use crate::game::randomizer::Weight;
 use std::ops::Add;
 use std::ops::Sub;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Wind8 {
     U,
     UR,

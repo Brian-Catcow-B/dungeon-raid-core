@@ -7,13 +7,13 @@ pub enum BeingType {
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Being {
-    being_type: BeingType,
-    base_output_damage: isize,
-    weapon_output_damage: isize,
-    hit_points: isize,
-    max_hit_points: isize,
-    shields: isize,
-    max_shields: isize,
+    pub being_type: BeingType,
+    pub base_output_damage: isize,
+    pub weapon_output_damage: isize,
+    pub hit_points: isize,
+    pub max_hit_points: isize,
+    pub shields: isize,
+    pub max_shields: isize,
 }
 
 const PLAYER_START_HP: isize = 20;

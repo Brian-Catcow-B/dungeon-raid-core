@@ -1,10 +1,10 @@
 use crate::game::being::{Being, BeingType, BeingIsDead};
 
 pub struct Player {
-    being: Being,
-    coins: isize,
-    excess_shields: isize,
-    experience_points: isize,
+    pub being: Being,
+    pub coins: isize,
+    pub excess_shields: isize,
+    pub experience_points: isize,
 }
 
 pub const COINS_PER_PURCHASE: isize = 100;

@@ -1,10 +1,13 @@
 mod board;
 use board::Board;
 
-mod randomizer;
-
 pub mod tile;
 use tile::{Tile, TilePosition};
+
+mod randomizer;
+
+mod being;
+mod player;
 
 pub struct Game {
     board: Board,

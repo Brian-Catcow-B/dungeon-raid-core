@@ -1,4 +1,5 @@
 use crate::game::randomizer::Weight;
+use crate::game::being::{BeingType, Being};
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -171,9 +172,30 @@ impl TileType {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum TileInfo {
+    Enemy(Being),
+    Boss(Being),
+    None,
+}
+
+impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
+    type Error = &'static str;
+
+    fn try_from(value: (TileType, &Being, &Being)) -> Result<Self, Self::Error> {
+        match value.0 {
+            TileType::Heart | TileType::Shield | TileType::Coin | TileType::Sword => Ok(Self::None),
+            TileType::Enemy => Ok(Self::Enemy(*value.1)),
+            TileType::Boss => Ok(Self::Boss(*value.2)),
+            _ => Err("invalid TileType given for TileInfo::TryFrom<(TileType, &Being, &Being)>"),
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct Tile {
     pub tile_type: TileType,
+    pub tile_info: TileInfo,
     pub next_selection: Wind8,
 }
 
@@ -181,16 +203,27 @@ impl Default for Tile {
     fn default() -> Tile {
         Tile {
             tile_type: TileType::None,
+            tile_info: TileInfo::None,
             next_selection: Wind8::None,
         }
     }
 }
 
+pub type Destroyed = bool;
 impl Tile {
-    pub fn new(tile_type: TileType) -> Tile {
+    pub fn new(tile_type: TileType, tile_info: TileInfo) -> Tile {
         Tile {
             tile_type,
+            tile_info,
             next_selection: Wind8::None,
+        }
+    }
+
+    pub fn slash(&mut self, damage: isize) -> Destroyed {
+        match self.tile_info {
+            TileInfo::Enemy(mut being) => {being.take_damage(damage)},
+            TileInfo::Boss(mut being) => {being.take_damage(damage)},
+            _ => true,
         }
     }
 }

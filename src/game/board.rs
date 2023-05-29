@@ -1,5 +1,7 @@
 use crate::game::randomizer::{Weight, WeightedRandomizer};
-use crate::game::tile::{Tile, TilePosition, TileType, Wind8};
+use crate::game::tile::{Tile, TilePosition, TileType, TileInfo, Wind8};
+use crate::game::player::Player;
+use crate::game::being::{BeingType, Being};
 
 pub struct Board {
     // access by [y][x] where [0][0] is top left corner
@@ -12,9 +14,10 @@ const MIN_DESTRUCTION_SELECTION: usize = 3;
 const WR_EXP_ERR_STR: &'static str =
     "weighted_random should only return None if nothing has been added to the randomizer";
 const TT_EXP_ERR_STR: &'static str = "TileType::TryFrom<usize> shouldn't fail because the usize is from a WeightedRandomizer with only the TileType's added";
+const TI_EXP_ERR_STR: &'static str = "TileInfo::TryFrom<(TileType, &Being, &Being)> shouldn't fail in this situation";
 
 impl Board {
-    pub fn new(w: usize, h: usize) -> Board {
+    pub fn new(w: usize, h: usize, enemy: &Being, boss: &Being) -> Board {
         // tile randomizer
 
         let mut tile_randomizer = WeightedRandomizer::default();
@@ -36,7 +39,8 @@ impl Board {
                 let weighted_random_value =
                     tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR);
                 let tile_type = TileType::try_from(weighted_random_value).expect(TT_EXP_ERR_STR);
-                tiles[new_idx].push(Tile::new(tile_type));
+                let tile_info = TileInfo::try_from((tile_type, enemy, boss)).expect(TI_EXP_ERR_STR);
+                tiles[new_idx].push(Tile::new(tile_type, tile_info));
             }
         }
 
@@ -125,7 +129,7 @@ impl Board {
         }
     }
 
-    fn selection_destructs(&self) -> bool {
+    fn selection_slashes(&self) -> bool {
         let mut num_tiles = 0;
         match self.selection_start {
             Some(pos) => {
@@ -148,31 +152,70 @@ impl Board {
         }
     }
 
-    pub fn drop_selection(&mut self) -> Vec<TilePosition> {
-        let destruct = self.selection_destructs();
-        let mut destructing_tiles: Vec<TilePosition> = vec![];
+    fn num_weapons_and_beings_in_selection(&self) -> (isize, isize) {
+        let mut num_weapons: isize = 0;
+        let mut num_beings: isize = 0;
+        match self.selection_start {
+            Some(pos) => {
+                if !self.position_valid(pos) {
+                    unreachable!("in num_weapons_in_selection, selection_start is Some(pos) but pos is not a valid position");
+                }
+                if !self.tiles[pos.y as usize][pos.x as usize]
+                    .tile_type
+                    .connects_with(TileType::Sword)
+                {
+                    return (0, 0);
+                }
+                let mut p = pos;
+                loop {
+                    match self.tiles[p.y as usize][pos.x as usize].tile_type {
+                        TileType::Sword => num_weapons += 1,
+                        TileType::Enemy | TileType::Boss => num_beings += 1,
+                        _ => {},
+                    };
+                    let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
+                    match relative_next {
+                        Wind8::None => break,
+                        _ => {
+                            p = p + TilePosition::from(relative_next);
+                            assert!(self.position_valid(p));
+                        }
+                    };
+                }
+            }
+            None => {}
+        };
+        (num_weapons, num_beings)
+    }
+
+    pub fn drop_selection(&mut self, player: &Player) -> Vec<Tile> {
+        let slash = self.selection_slashes();
+        let (num_weapons, num_beings) = if slash {
+            self.num_weapons_and_beings_in_selection()
+        } else {
+            (0, 0)
+        };
+        let mut destructing_tiles: Vec<Tile> = vec![];
         match self.selection_start {
             Some(pos) => {
                 self.selection_start = None;
-                let mut p: TilePosition = pos;
+                let mut p = pos;
                 loop {
                     // TODO: limit this loop
-                    if self.position_valid(p) {
-                        let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
-                        if destruct {
-                            destructing_tiles.push(p);
+                    assert!(self.position_valid(p));
+                    let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
+                    if slash {
+                        if self.tiles[p.y as usize][p.x as usize].slash(player.output_damage(num_beings, num_weapons)) {
+                            destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
                             self.tiles[p.y as usize][p.x as usize] = Tile::default();
-                        } else {
-                            self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
                         }
-
-                        match relative_next {
-                            Wind8::None => break,
-                            _ => p = p + TilePosition::from(relative_next),
-                        };
                     } else {
-                        unreachable!("in drop_selection, one of the tiles in the selection trail points off the board");
+                        self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
                     }
+                    match relative_next {
+                        Wind8::None => break,
+                        _ => p = p + TilePosition::from(relative_next),
+                    };
                 }
             }
             None => {}
@@ -188,7 +231,7 @@ impl Board {
         }
     }
 
-    pub fn apply_gravity_and_randomize_new_tiles(&mut self) {
+    pub fn apply_gravity_and_randomize_new_tiles(&mut self, enemy: &Being, boss: &Being) {
         let h = self.tiles.len();
         if h == 0 || self.tiles[0].len() == 0 {
             return;
@@ -198,9 +241,7 @@ impl Board {
             let mut num_falling = 0;
             for y in (0..h).rev() {
                 match self.tiles[y][x].tile_type {
-                    TileType::None => {
-                        num_falling += 1;
-                    }
+                    TileType::None => num_falling += 1,
                     _ => {
                         if num_falling > 0 {
                             self.tiles[y + num_falling][x].tile_type = self.tiles[y][x].tile_type;
@@ -210,12 +251,15 @@ impl Board {
                 };
             }
             for i in 0..num_falling {
-                self.tiles[num_falling - i - 1][x].tile_type = TileType::try_from(
+                let tile_type = 
+                TileType::try_from(
                     self.tile_randomizer
                         .weighted_random()
                         .expect(WR_EXP_ERR_STR),
                 )
                 .expect(TT_EXP_ERR_STR);
+                let tile_info = TileInfo::try_from((tile_type, enemy, boss)).expect(TI_EXP_ERR_STR);
+                self.tiles[num_falling - i - 1][x] = Tile::new(tile_type, tile_info);
             }
         }
     }

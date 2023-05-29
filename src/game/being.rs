@@ -1,9 +1,11 @@
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum BeingType {
     Player,
     Enemy,
     Boss,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Being {
     being_type: BeingType,
     base_output_damage: isize,
@@ -21,7 +23,7 @@ const ENEMY_START_SH: isize = 0;
 const BOSS_START_HP: isize = 50;
 const BOSS_START_SH: isize = 4;
 
-type BeingIsDead = bool;
+pub type BeingIsDead = bool;
 impl Being {
     pub fn new(being_type: BeingType) -> Self {
         match being_type {

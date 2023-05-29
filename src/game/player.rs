@@ -1,6 +1,6 @@
-use crate::game::being::{Being, BeingType};
+use crate::game::being::{Being, BeingType, BeingIsDead};
 
-struct Player {
+pub struct Player {
     being: Being,
     coins: isize,
     excess_shields: isize,
@@ -35,6 +35,14 @@ pub type NumPurchases = usize;
 pub type NumUpgrades = usize;
 pub type NumLevelUps = usize;
 impl Player {
+    pub fn take_damage(&mut self, damage: isize) -> BeingIsDead {
+        self.being.take_damage(damage)
+    }
+
+    pub fn output_damage(&self, num_enemies: isize, num_weapons: isize) -> isize {
+        self.being.output_damage(num_enemies, num_weapons)
+    }
+
     pub fn add_coins(&mut self, coins_to_add: isize) -> NumPurchases {
         rollover_add(&mut self.coins, coins_to_add, COINS_PER_PURCHASE)
     }

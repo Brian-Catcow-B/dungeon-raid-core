@@ -41,7 +41,7 @@ impl Game {
     }
 
     pub fn incoming_damage(&self) -> isize {
-        self.board.incoming_damage
+        self.board.incoming_damage()
     }
 
     pub fn select_tile(&mut self, tile_position: TilePosition) -> bool {

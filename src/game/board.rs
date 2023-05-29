@@ -8,7 +8,6 @@ pub struct Board {
     tiles: Vec<Vec<Tile>>,
     tile_randomizer: WeightedRandomizer,
     pub selection_start: Option<TilePosition>,
-    pub incoming_damage: isize,
 }
 
 const MIN_DESTRUCTION_SELECTION: usize = 3;
@@ -36,7 +35,6 @@ impl Board {
             tiles: vec![],
             tile_randomizer,
             selection_start: None,
-            incoming_damage: 0,
         };
 
         // tiles
@@ -46,16 +44,21 @@ impl Board {
             b.tiles.push(vec![]);
             for _ in 0..h {
                 b.tiles[new_idx].push(Tile::default());
-                /*let weighted_random_value =
-                    tile_randomizer.weighted_random().expect(WR_EXP_ERR_STR);
-                let tile_type = TileType::try_from(weighted_random_value).expect(TT_EXP_ERR_STR);
-                let tile_info = TileInfo::try_from((tile_type, enemy, boss)).expect(TI_EXP_ERR_STR);
-                tiles[new_idx].push(Tile::new(tile_type, tile_info));*/
             }
         }
         b.apply_gravity_and_randomize_new_tiles(enemy, boss);
 
         b
+    }
+
+    pub fn incoming_damage(&self) -> isize {
+        let mut dmg = 0;
+        for col in self.tiles.iter() {
+            for tile in col.iter() {
+                dmg += tile.tile_info.output_damage();
+            }
+        }
+        dmg
     }
 
     fn position_valid(&self, pos: TilePosition) -> bool {
@@ -213,7 +216,6 @@ impl Board {
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     if slash && self.tiles[p.y as usize][p.x as usize].slash(player.output_damage(num_beings, num_weapons)) {
                         destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
-                        self.incoming_damage -= self.tiles[p.y as usize][p.x as usize].tile_info.output_damage();
                         self.tiles[p.y as usize][p.x as usize] = Tile::default();
                     }
                     self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
@@ -264,7 +266,6 @@ impl Board {
                 )
                 .expect(TT_EXP_ERR_STR);
                 let tile_info = TileInfo::try_from((tile_type, enemy, boss)).expect(TI_EXP_ERR_STR);
-                self.incoming_damage += tile_info.output_damage();
                 self.tiles[num_falling - i - 1][x] = Tile::new(tile_type, tile_info);
             }
         }

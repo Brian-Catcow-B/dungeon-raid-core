@@ -204,14 +204,11 @@ impl Board {
                     // TODO: limit this loop
                     assert!(self.position_valid(p));
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
-                    if slash {
-                        if self.tiles[p.y as usize][p.x as usize].slash(player.output_damage(num_beings, num_weapons)) {
-                            destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
-                            self.tiles[p.y as usize][p.x as usize] = Tile::default();
-                        }
-                    } else {
-                        self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
+                    if slash && self.tiles[p.y as usize][p.x as usize].slash(player.output_damage(num_beings, num_weapons)) {
+                        destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
+                        self.tiles[p.y as usize][p.x as usize] = Tile::default();
                     }
+                    self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
                     match relative_next {
                         Wind8::None => break,
                         _ => p = p + TilePosition::from(relative_next),

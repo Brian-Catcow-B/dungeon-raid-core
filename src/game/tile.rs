@@ -1,5 +1,5 @@
 use crate::game::randomizer::Weight;
-use crate::game::being::{BeingType, Being};
+use crate::game::being::Being;
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -188,6 +188,16 @@ impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
             TileType::Enemy => Ok(Self::Enemy(*value.1)),
             TileType::Boss => Ok(Self::Boss(*value.2)),
             _ => Err("invalid TileType given for TileInfo::TryFrom<(TileType, &Being, &Being)>"),
+        }
+    }
+}
+
+impl TileInfo {
+    pub fn output_damage(self) -> isize {
+        match self {
+            Self::Enemy(b) => b.output_damage(1, 0),
+            Self::Boss(b) => b.output_damage(1, 0),
+            _ => 0,
         }
     }
 }

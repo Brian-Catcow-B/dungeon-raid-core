@@ -194,13 +194,11 @@ impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
 
 impl TileInfo {
     pub fn output_damage(self) -> isize {
-        let out = match self {
-            Self::Enemy(b) => b.output_damage(1, 0),
+        match self {
+            Self::Enemy(b) => {let o = b.output_damage(1, 0); assert_eq!(o, 1); o},
             Self::Boss(b) => b.output_damage(1, 0),
             _ => 0,
-        };
-        assert!(out == 1);
-        out
+        }
     }
 }
 

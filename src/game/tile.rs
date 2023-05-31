@@ -195,7 +195,7 @@ impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
 impl TileInfo {
     pub fn output_damage(self) -> isize {
         match self {
-            Self::Enemy(b) => {let o = b.output_damage(1, 0); assert_eq!(o, 1); o},
+            Self::Enemy(b) => b.output_damage(1, 0),
             Self::Boss(b) => b.output_damage(1, 0),
             _ => 0,
         }

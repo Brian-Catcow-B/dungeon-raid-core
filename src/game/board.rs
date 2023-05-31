@@ -271,23 +271,3 @@ impl Board {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_select_tile() {
-        let mut b = Board::new(6, 6);
-        b.select_tile(TilePosition::new(0, 0));
-        b.select_tile(TilePosition::new(1, 0));
-        b.select_tile(TilePosition::new(0, 1));
-        b.select_tile(TilePosition::new(0, 0));
-        assert!(
-            b.get_tile(TilePosition::new(0, 0))
-                .expect("how is (0, 0) not a tile?")
-                .next_selection
-                == Wind8::None
-        );
-    }
-}

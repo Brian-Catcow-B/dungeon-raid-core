@@ -255,8 +255,8 @@ impl Board {
                     TileType::None => num_falling += 1,
                     _ => {
                         if num_falling > 0 {
-                            self.tiles[y + num_falling][x].tile_type = self.tiles[y][x].tile_type;
-                            self.tiles[y][x].tile_type = TileType::None;
+                            self.tiles[y + num_falling][x] = self.tiles[y][x];
+                            self.tiles[y][x] = Tile::default();
                         }
                     }
                 };

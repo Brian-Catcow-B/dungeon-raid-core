@@ -16,10 +16,16 @@ pub struct Being {
     pub max_shields: isize,
 }
 
+const PLAYER_START_BASE_DMG: isize = 3;
+const PLAYER_START_WEAPON_DMG: isize = 3;
 const PLAYER_START_HP: isize = 20;
 const PLAYER_START_SH: isize = 3;
+
+pub const ENEMY_START_DMG: isize = 1;
 const ENEMY_START_HP: isize = 5;
 const ENEMY_START_SH: isize = 0;
+
+const BOSS_START_DMG: isize = 1;
 const BOSS_START_HP: isize = 50;
 const BOSS_START_SH: isize = 4;
 
@@ -29,8 +35,8 @@ impl Being {
         match being_type {
             BeingType::Player => Self {
                 being_type,
-                base_output_damage: 3,
-                weapon_output_damage: 3,
+                base_output_damage: PLAYER_START_BASE_DMG,
+                weapon_output_damage: PLAYER_START_WEAPON_DMG,
                 hit_points: PLAYER_START_HP,
                 max_hit_points: PLAYER_START_HP,
                 shields: PLAYER_START_SH,
@@ -38,7 +44,7 @@ impl Being {
             },
             BeingType::Enemy => Self {
                 being_type,
-                base_output_damage: 1,
+                base_output_damage: ENEMY_START_DMG,
                 weapon_output_damage: 0,
                 hit_points: ENEMY_START_HP,
                 max_hit_points: ENEMY_START_HP,
@@ -47,7 +53,7 @@ impl Being {
             },
             BeingType::Boss => Self {
                 being_type,
-                base_output_damage: 7,
+                base_output_damage: BOSS_START_DMG,
                 weapon_output_damage: 3,
                 hit_points: BOSS_START_HP,
                 max_hit_points: BOSS_START_HP,

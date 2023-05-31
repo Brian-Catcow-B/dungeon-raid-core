@@ -1,4 +1,4 @@
-use crate::game::being::{Being, BeingType, BeingIsDead};
+use crate::game::being::{Being, BeingIsDead, BeingType};
 
 pub struct Player {
     pub being: Being,

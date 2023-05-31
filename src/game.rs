@@ -7,7 +7,7 @@ use tile::{Tile, TilePosition};
 mod randomizer;
 
 mod being;
-use being::{BeingType, Being};
+use being::{Being, BeingType};
 
 mod player;
 use player::Player;
@@ -53,7 +53,8 @@ impl Game {
     }
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self) {
-        self.board.apply_gravity_and_randomize_new_tiles(&self.enemy, &self.boss);
+        self.board
+            .apply_gravity_and_randomize_new_tiles(&self.enemy, &self.boss);
     }
 
     pub fn get_tile(&self, tile_position: TilePosition) -> Option<Tile> {

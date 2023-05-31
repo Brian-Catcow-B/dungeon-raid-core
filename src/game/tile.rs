@@ -1,5 +1,5 @@
-use crate::game::randomizer::Weight;
 use crate::game::being::Being;
+use crate::game::randomizer::Weight;
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -231,8 +231,8 @@ impl Tile {
 
     pub fn slash(&mut self, damage: isize) -> Destroyed {
         match self.tile_info {
-            TileInfo::Enemy(mut being) => {being.take_damage(damage)},
-            TileInfo::Boss(mut being) => {being.take_damage(damage)},
+            TileInfo::Enemy(mut being) => being.take_damage(damage),
+            TileInfo::Boss(mut being) => being.take_damage(damage),
             _ => true,
         }
     }

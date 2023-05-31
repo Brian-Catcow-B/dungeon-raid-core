@@ -1,7 +1,7 @@
-use crate::game::randomizer::{Weight, WeightedRandomizer};
-use crate::game::tile::{Tile, TilePosition, TileType, TileInfo, Wind8};
-use crate::game::player::Player;
 use crate::game::being::Being;
+use crate::game::player::Player;
+use crate::game::randomizer::{Weight, WeightedRandomizer};
+use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 
 pub struct Board {
     // access by [y][x] where [0][0] is top left corner
@@ -14,7 +14,8 @@ const MIN_DESTRUCTION_SELECTION: usize = 3;
 const WR_EXP_ERR_STR: &'static str =
     "weighted_random should only return None if nothing has been added to the randomizer";
 const TT_EXP_ERR_STR: &'static str = "TileType::TryFrom<usize> shouldn't fail because the usize is from a WeightedRandomizer with only the TileType's added";
-const TI_EXP_ERR_STR: &'static str = "TileInfo::TryFrom<(TileType, &Being, &Being)> shouldn't fail in this situation";
+const TI_EXP_ERR_STR: &'static str =
+    "TileInfo::TryFrom<(TileType, &Being, &Being)> shouldn't fail in this situation";
 
 impl Board {
     pub fn new(w: usize, h: usize, enemy: &Being, boss: &Being) -> Board {
@@ -181,7 +182,7 @@ impl Board {
                     match self.tiles[p.y as usize][pos.x as usize].tile_type {
                         TileType::Sword => num_weapons += 1,
                         TileType::Enemy | TileType::Boss => num_beings += 1,
-                        _ => {},
+                        _ => {}
                     };
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     match relative_next {
@@ -214,7 +215,10 @@ impl Board {
                     // TODO: limit this loop
                     assert!(self.position_valid(p));
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
-                    if slash && self.tiles[p.y as usize][p.x as usize].slash(player.output_damage(num_beings, num_weapons)) {
+                    if slash
+                        && self.tiles[p.y as usize][p.x as usize]
+                            .slash(player.output_damage(num_beings, num_weapons))
+                    {
                         destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
                         self.tiles[p.y as usize][p.x as usize] = Tile::default();
                     }
@@ -258,8 +262,7 @@ impl Board {
                 };
             }
             for i in 0..num_falling {
-                let tile_type = 
-                TileType::try_from(
+                let tile_type = TileType::try_from(
                     self.tile_randomizer
                         .weighted_random()
                         .expect(WR_EXP_ERR_STR),
@@ -268,6 +271,78 @@ impl Board {
                 let tile_info = TileInfo::try_from((tile_type, enemy, boss)).expect(TI_EXP_ERR_STR);
                 self.tiles[num_falling - i - 1][x] = Tile::new(tile_type, tile_info);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::being::{BeingType, ENEMY_START_DMG};
+    use crate::game::{DEFAULT_BOARD_HEIGHT, DEFAULT_BOARD_WIDTH};
+
+    fn testhelp_custom_random_board(
+        w: usize,
+        h: usize,
+        enemy: &Being,
+        boss: &Being,
+        randomizer_tiles: &Vec<TileType>,
+    ) -> Board {
+        let mut r = WeightedRandomizer::default();
+        for tile_type in randomizer_tiles.iter() {
+            r.add_to_weight(*tile_type as usize, 1);
+        }
+
+        // create the board
+
+        let mut b = Board {
+            tiles: vec![],
+            tile_randomizer: r,
+            selection_start: None,
+        };
+
+        // tiles
+
+        for _ in 0..w {
+            let new_idx = b.tiles.len();
+            b.tiles.push(vec![]);
+            for _ in 0..h {
+                b.tiles[new_idx].push(Tile::default());
+            }
+        }
+        b.apply_gravity_and_randomize_new_tiles(enemy, boss);
+
+        b
+    }
+
+    #[test]
+    fn test_incoming_damage() {
+        let enemy = Being::new(BeingType::Enemy);
+        let boss = Being::new(BeingType::Boss);
+        let mut b = testhelp_custom_random_board(
+            DEFAULT_BOARD_WIDTH,
+            DEFAULT_BOARD_HEIGHT,
+            &enemy,
+            &boss,
+            &vec![TileType::Enemy],
+        );
+
+        assert_eq!(
+            b.incoming_damage(),
+            ENEMY_START_DMG * DEFAULT_BOARD_WIDTH as isize * DEFAULT_BOARD_HEIGHT as isize
+        );
+
+        let mut tp;
+        for _ in 0..1000 {
+            tp = TilePosition::new(0, 0);
+            for _ in 0..3 {
+                b.select_tile(tp);
+                tp = tp + TilePosition::try_from(Wind8::R).expect("");
+            }
+            assert_eq!(
+                b.incoming_damage(),
+                ENEMY_START_DMG * DEFAULT_BOARD_WIDTH as isize * DEFAULT_BOARD_HEIGHT as isize
+            );
         }
     }
 }

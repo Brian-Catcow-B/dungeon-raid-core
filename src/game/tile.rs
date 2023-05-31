@@ -231,8 +231,8 @@ impl Tile {
 
     pub fn slash(&mut self, damage: isize) -> Destroyed {
         match self.tile_info {
-            TileInfo::Enemy(mut being) => being.take_damage(damage),
-            TileInfo::Boss(mut being) => being.take_damage(damage),
+            TileInfo::Enemy(ref mut being) => being.take_damage(damage),
+            TileInfo::Boss(ref mut being) => being.take_damage(damage),
             _ => true,
         }
     }

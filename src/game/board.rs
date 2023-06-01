@@ -181,9 +181,7 @@ impl Board {
         let mut num_beings: isize = 0;
         match self.selection_start {
             Some(pos) => {
-                if !self.position_valid(pos) {
-                    unreachable!("in num_weapons_in_selection, selection_start is Some(pos) but pos is not a valid position");
-                }
+                assert!(self.position_valid(pos));
                 if !self.tiles[pos.y as usize][pos.x as usize]
                     .tile_type
                     .connects_with(TileType::Sword)
@@ -192,10 +190,10 @@ impl Board {
                 }
                 let mut p = pos;
                 loop {
-                    match self.tiles[p.y as usize][pos.x as usize].tile_type {
+                    match self.tiles[p.y as usize][p.x as usize].tile_type {
                         TileType::Sword => num_weapons += 1,
                         TileType::Enemy | TileType::Boss => num_beings += 1,
-                        _ => {}
+                        _ => {},
                     };
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     match relative_next {
@@ -207,7 +205,7 @@ impl Board {
                     };
                 }
             }
-            None => {}
+            None => {},
         };
         (num_weapons, num_beings)
     }

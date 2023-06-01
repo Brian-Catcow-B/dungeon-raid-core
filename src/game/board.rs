@@ -10,7 +10,11 @@ fn clear_logs() {
     write!(&mut file, "").expect("failed to write file");
 }
 fn log(msg: &String) {
-    let mut file = std::fs::File::options().append(true).create(true).open(LOG_FILE).expect("failed to create file");
+    let mut file = std::fs::File::options()
+        .append(true)
+        .create(true)
+        .open(LOG_FILE)
+        .expect("failed to create file");
     writeln!(&mut file, "{}", msg).expect("failed to write file");
 }
 
@@ -193,7 +197,7 @@ impl Board {
                     match self.tiles[p.y as usize][p.x as usize].tile_type {
                         TileType::Sword => num_weapons += 1,
                         TileType::Enemy | TileType::Boss => num_beings += 1,
-                        _ => {},
+                        _ => {}
                     };
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     match relative_next {
@@ -205,7 +209,7 @@ impl Board {
                     };
                 }
             }
-            None => {},
+            None => {}
         };
         (num_weapons, num_beings)
     }
@@ -217,7 +221,10 @@ impl Board {
         } else {
             (0, 0)
         };
-        log(&format!("drop_selection called; (slash {}, weapons {}, beings {})", slash, num_weapons, num_beings));
+        log(&format!(
+            "drop_selection called; (slash {}, weapons {}, beings {})",
+            slash, num_weapons, num_beings
+        ));
         let mut destructing_tiles: Vec<Tile> = vec![];
         match self.selection_start {
             Some(pos) => {

@@ -2,12 +2,12 @@ mod board;
 use board::Board;
 
 pub mod tile;
-use tile::{Tile, TilePosition};
+use tile::{Tile, TilePosition, TileType};
 
 mod randomizer;
 
 mod being;
-use being::{Being, BeingType, BeingIsDead};
+use being::{Being, BeingIsDead, BeingType};
 
 mod player;
 use player::Player;
@@ -53,7 +53,33 @@ impl Game {
     }
 
     pub fn drop_selection(&mut self) -> Vec<Tile> {
-        self.board.drop_selection(&self.player)
+        let vec = self.board.drop_selection(&self.player);
+        let (mut hearts, mut shields, mut coins) = (0, 0, 0);
+        for tile in vec.iter() {
+            match tile.tile_type {
+                TileType::Heart => hearts += 1,
+                TileType::Shield => shields += 1,
+                TileType::Coin => coins += 1,
+                TileType::Sword => {}
+                TileType::Enemy => { /*TODO: add xp*/ }
+                TileType::Boss => { /*TODO: add xp*/ }
+                TileType::COUNT | TileType::None => {
+                    unreachable!("drop_selection went over invalid TIleType")
+                }
+            };
+        }
+        if hearts > 0 {
+            self.player.add_hit_points(hearts);
+        }
+        // TODO: handle upgrade/purchase/lvl up
+        if shields > 0 {
+            self.player.add_shields(shields);
+        }
+        if coins > 0 {
+            self.player.add_coins(coins);
+        }
+
+        vec
     }
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self) {

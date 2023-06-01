@@ -43,6 +43,10 @@ impl Player {
         self.being.output_damage(num_enemies, num_weapons)
     }
 
+    pub fn add_hit_points(&mut self, hit_points_to_add: isize) -> isize {
+        self.being.add_hit_points(hit_points_to_add)
+    }
+
     pub fn add_coins(&mut self, coins_to_add: isize) -> NumPurchases {
         rollover_add(&mut self.coins, coins_to_add, COINS_PER_PURCHASE)
     }

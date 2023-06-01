@@ -7,7 +7,7 @@ use tile::{Tile, TilePosition};
 mod randomizer;
 
 mod being;
-use being::{Being, BeingType};
+use being::{Being, BeingType, BeingIsDead};
 
 mod player;
 use player::Player;
@@ -42,6 +42,10 @@ impl Game {
 
     pub fn incoming_damage(&self) -> isize {
         self.board.incoming_damage()
+    }
+
+    pub fn apply_incoming_damage(&mut self) -> BeingIsDead {
+        self.player.take_damage(self.board.incoming_damage())
     }
 
     pub fn select_tile(&mut self, tile_position: TilePosition) -> bool {

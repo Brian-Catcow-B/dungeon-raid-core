@@ -3,6 +3,17 @@ use crate::game::player::Player;
 use crate::game::randomizer::{Weight, WeightedRandomizer};
 use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 
+use std::io::Write;
+const LOG_FILE: &'static str = "core_log.txt";
+fn clear_logs() {
+    let mut file = std::fs::File::create(LOG_FILE).expect("failed to create file");
+    write!(&mut file, "").expect("failed to write file");
+}
+fn log(msg: &String) {
+    let mut file = std::fs::File::options().append(true).create(true).open(LOG_FILE).expect("failed to create file");
+    writeln!(&mut file, "{}", msg).expect("failed to write file");
+}
+
 pub struct Board {
     // access by [y][x] where [0][0] is top left corner
     tiles: Vec<Vec<Tile>>,
@@ -19,6 +30,8 @@ const TI_EXP_ERR_STR: &'static str =
 
 impl Board {
     pub fn new(w: usize, h: usize, enemy: &Being, boss: &Being) -> Board {
+        clear_logs();
+
         // tile randomizer
 
         let mut tile_randomizer = WeightedRandomizer::default();
@@ -206,6 +219,7 @@ impl Board {
         } else {
             (0, 0)
         };
+        log(&format!("drop_selection called; (slash {}, weapons {}, beings {})", slash, num_weapons, num_beings));
         let mut destructing_tiles: Vec<Tile> = vec![];
         match self.selection_start {
             Some(pos) => {

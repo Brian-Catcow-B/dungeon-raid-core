@@ -78,8 +78,8 @@ impl Game {
         }
     }
 
-    pub fn drop_selection(&mut self) -> Vec<Tile> {
-        let vec = self.board.drop_selection(&self.player);
+    pub fn drop_selection(&mut self) -> bool {
+        let (slash, vec) = self.board.drop_selection(&self.player);
         let (mut hearts, mut shields, mut coins) = (0, 0, 0);
         for tile in vec.iter() {
             match tile.tile_type {
@@ -113,7 +113,7 @@ impl Game {
 
         self.step_improvement_queue();
 
-        vec
+        slash
     }
 
     pub fn choose_improvement(&mut self, index: usize) {

@@ -214,7 +214,7 @@ impl Board {
         (num_weapons, num_beings)
     }
 
-    pub fn drop_selection(&mut self, player: &Player) -> Vec<Tile> {
+    pub fn drop_selection(&mut self, player: &Player) -> (bool, Vec<Tile>) {
         let slash = self.selection_slashes();
         let (num_weapons, num_beings) = if slash {
             self.num_weapons_and_beings_in_selection()
@@ -250,7 +250,7 @@ impl Board {
             }
             None => {}
         }
-        destructing_tiles
+        (slash, destructing_tiles)
     }
 
     pub fn get_tile(&self, tile_position: TilePosition) -> Option<Tile> {

@@ -9,8 +9,8 @@ pub struct Player {
     pub experience_points: isize,
 }
 
-pub const COINS_PER_PURCHASE: isize = 100;
-pub const EXCESS_SHIELDS_PER_UPGRADE: isize = 100;
+pub const COINS_PER_PURCHASE: isize = 10;
+pub const EXCESS_SHIELDS_PER_UPGRADE: isize = 10;
 pub const EXPERIENCE_POINTS_PER_LEVEL_UP: isize = 100;
 
 impl Default for Player {

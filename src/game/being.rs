@@ -18,7 +18,7 @@ pub struct Being {
 
 const PLAYER_START_BASE_DMG: isize = 3;
 const PLAYER_START_WEAPON_DMG: isize = 3;
-const PLAYER_START_HP: isize = 20;
+const PLAYER_START_HP: isize = 50;
 const PLAYER_START_SH: isize = 3;
 
 pub const ENEMY_START_DMG: isize = 1;

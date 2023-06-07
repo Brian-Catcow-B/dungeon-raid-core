@@ -116,17 +116,17 @@ impl Game {
         vec
     }
 
-    pub fn choose_improvement(&mut self, index: usize) -> bool {
+    pub fn choose_improvement(&mut self, index: usize) {
         match self.improvement_choice_set {
             Some(ref set) => {
                 match set.info {
                     ImprovementInfo::ShieldUpgradeInfo(ref vec_shield_upgrade) => self.player.apply_upgrade(&vec_shield_upgrade[index]),
                     ImprovementInfo::CoinPurchaseInfo(ref vec_coin_purchase) => self.player.apply_purchase(&vec_coin_purchase[index]),
                 };
-                true
             },
-            None => false,
-        }
+            None => {},
+        };
+        self.step_improvement_queue();
     }
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self) {

@@ -1,4 +1,6 @@
 use crate::game::being::{Being, BeingIsDead, BeingType};
+use crate::game::shield_upgrade::ShieldUpgrade;
+use crate::game::coin_purchase::CoinPurchase;
 
 pub struct Player {
     pub being: Being,
@@ -70,5 +72,15 @@ impl Player {
             experience_points_to_add,
             EXPERIENCE_POINTS_PER_LEVEL_UP,
         )
+    }
+
+    // improvements
+
+    pub fn apply_upgrade(&mut self, upgrade: &ShieldUpgrade) {
+
+    }
+
+    pub fn apply_purchase(&mut self, purchase: &CoinPurchase) {
+
     }
 }

@@ -3,15 +3,26 @@ pub type Weight = usize;
 struct ValueWeight {
     value: usize,
     weight: Weight,
+    weight_meta_modifier: isize,
 }
 
 impl ValueWeight {
     fn new(value: usize) -> Self {
-        Self { value, weight: 0 }
+        Self {
+            value,
+            weight: 0,
+            weight_meta_modifier: 0,
+        }
     }
 }
 
+pub enum WeightedRandomizerType {
+    Default,
+    MetaSubAllOnObtain,
+}
+
 pub struct WeightedRandomizer {
+    weighted_randomizer_type: WeightedRandomizerType,
     value_weight_vec: Vec<ValueWeight>,
     indexed: bool,
     total_weight: usize,
@@ -21,6 +32,7 @@ const MAX_VALUE_SEPARATION: usize = 25;
 impl Default for WeightedRandomizer {
     fn default() -> Self {
         Self {
+            weighted_randomizer_type: WeightedRandomizerType::Default,
             value_weight_vec: vec![],
             indexed: true,
             total_weight: 0,
@@ -29,6 +41,26 @@ impl Default for WeightedRandomizer {
 }
 
 impl WeightedRandomizer {
+    pub fn new(weighted_randomizer_type: WeightedRandomizerType) -> Self {
+        Self {
+            weighted_randomizer_type,
+            value_weight_vec: vec![],
+            indexed: true,
+            total_weight: 0,
+        }
+    }
+
+    pub fn reset_metadata(&mut self) {
+        for var in self.value_weight_vec.iter_mut() {
+            if var.weight_meta_modifier >= 0 {
+                self.total_weight -= var.weight_meta_modifier as usize;
+            } else {
+                self.total_weight += ((-1) * var.weight_meta_modifier) as usize;
+            }
+            var.weight_meta_modifier = 0;
+        }
+    }
+
     fn evenly_distributed_random(max_value: usize) -> usize {
         if max_value == usize::MAX {
             return rand::random::<usize>();
@@ -49,15 +81,27 @@ impl WeightedRandomizer {
         }
     }
 
-    pub fn weighted_random(&self) -> Option<usize> {
+    pub fn weighted_random(&mut self) -> Option<usize> {
         if self.total_weight == 0 {
             return None;
         }
         let random_num = Self::evenly_distributed_random(self.total_weight - 1);
         let mut running_sum = 0;
-        for var in self.value_weight_vec.iter() {
+        for var in self.value_weight_vec.iter_mut() {
             running_sum += var.weight;
+            if var.weight_meta_modifier > 0 {
+                running_sum += var.weight_meta_modifier as usize;
+            } else {
+                running_sum -= ((-1) * var.weight_meta_modifier) as usize;
+            }
             if random_num < running_sum {
+                match self.weighted_randomizer_type {
+                    WeightedRandomizerType::Default => {}
+                    WeightedRandomizerType::MetaSubAllOnObtain => {
+                        var.weight_meta_modifier = (-1) * (var.weight as isize);
+                        self.total_weight -= var.weight;
+                    }
+                }
                 return Some(var.value);
             }
         }
@@ -99,20 +143,6 @@ impl WeightedRandomizer {
         let idx = self.true_find(value);
         self.total_weight += new_weight - self.value_weight_vec[idx].weight;
         self.value_weight_vec[idx].weight = new_weight;
-    }
-
-    pub fn add_to_weight(&mut self, value: usize, weight_to_add: Weight) {
-        let idx = self.true_find(value);
-        self.total_weight += weight_to_add;
-        self.value_weight_vec[idx].weight += weight_to_add;
-    }
-
-    pub fn subtract_from_weight(&mut self, value: usize, weight_to_subtract: Weight) {
-        let idx = self.true_find(value);
-        let capped_weight_to_subtract =
-            std::cmp::min(weight_to_subtract, self.value_weight_vec[idx].weight);
-        self.total_weight -= capped_weight_to_subtract;
-        self.value_weight_vec[idx].weight -= capped_weight_to_subtract;
     }
 }
 

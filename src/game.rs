@@ -12,11 +12,20 @@ use being::{Being, BeingIsDead, BeingType};
 mod player;
 use player::Player;
 
+mod coin_purchase;
+mod improvement_choices;
+mod shield_upgrade;
+mod stat_modifier_types;
+use improvement_choices::{ImprovementChoiceSet, ImprovementChoiceSetGenerator, ImprovementType, ImprovementInfo};
+
 pub struct Game {
     board: Board,
     player: Player,
     enemy: Being,
     boss: Being,
+    improvement_choice_set_generator: ImprovementChoiceSetGenerator,
+    improvement_choice_set: Option<ImprovementChoiceSet>,
+    improvement_queue: Vec<ImprovementType>,
 }
 
 pub const DEFAULT_BOARD_WIDTH: usize = 6;
@@ -31,6 +40,9 @@ impl Default for Game {
             player: Player::default(),
             enemy,
             boss,
+            improvement_choice_set_generator: ImprovementChoiceSetGenerator::default(),
+            improvement_choice_set: None,
+            improvement_queue: vec![],
         }
     }
 }
@@ -38,6 +50,10 @@ impl Default for Game {
 impl Game {
     pub fn player(&self) -> &Player {
         &self.player
+    }
+
+    pub fn improvement_choice_set(&self) -> &Option<ImprovementChoiceSet> {
+        &self.improvement_choice_set
     }
 
     pub fn incoming_damage(&self) -> isize {
@@ -52,6 +68,16 @@ impl Game {
         self.board.select_tile(tile_position)
     }
 
+    fn step_improvement_queue(&mut self) {
+        match self.improvement_queue.pop() {
+            Some(imp_type) => {
+                self.improvement_choice_set =
+                    Some(self.improvement_choice_set_generator.get(imp_type))
+            }
+            None => self.improvement_choice_set = None,
+        }
+    }
+
     pub fn drop_selection(&mut self) -> Vec<Tile> {
         let vec = self.board.drop_selection(&self.player);
         let (mut hearts, mut shields, mut coins) = (0, 0, 0);
@@ -64,7 +90,7 @@ impl Game {
                 TileType::Enemy => { /*TODO: add xp*/ }
                 TileType::Boss => { /*TODO: add xp*/ }
                 TileType::COUNT | TileType::None => {
-                    unreachable!("drop_selection went over invalid TIleType")
+                    unreachable!("drop_selection went over invalid TileType")
                 }
             };
         }
@@ -73,13 +99,34 @@ impl Game {
         }
         // TODO: handle upgrade/purchase/lvl up
         if shields > 0 {
-            self.player.add_shields(shields);
+            let num_upgrades = self.player.add_shields(shields);
+            for _ in 0..num_upgrades {
+                self.improvement_queue.push(ImprovementType::Shields);
+            }
         }
         if coins > 0 {
-            self.player.add_coins(coins);
+            let num_purchases = self.player.add_coins(coins);
+            for _ in 0..num_purchases {
+                self.improvement_queue.push(ImprovementType::Coins);
+            }
         }
 
+        self.step_improvement_queue();
+
         vec
+    }
+
+    pub fn choose_improvement(&mut self, index: usize) -> bool {
+        match self.improvement_choice_set {
+            Some(ref set) => {
+                match set.info {
+                    ImprovementInfo::ShieldUpgradeInfo(ref vec_shield_upgrade) => self.player.apply_upgrade(&vec_shield_upgrade[index]),
+                    ImprovementInfo::CoinPurchaseInfo(ref vec_coin_purchase) => self.player.apply_purchase(&vec_coin_purchase[index]),
+                };
+                true
+            },
+            None => false,
+        }
     }
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self) {

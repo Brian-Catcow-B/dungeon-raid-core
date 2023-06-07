@@ -12,11 +12,15 @@ use being::{Being, BeingType};
 mod player;
 use player::{Player, PlayerIsDead};
 
-mod coin_purchase;
-mod improvement_choices;
-mod shield_upgrade;
 mod stat_modifier_types;
-use improvement_choices::{ImprovementChoiceSet, ImprovementChoiceSetGenerator, ImprovementType, ImprovementInfo};
+
+mod coin_purchase;
+mod shield_upgrade;
+
+pub mod improvement_choices;
+use improvement_choices::{
+    ImprovementChoiceSet, ImprovementChoiceSetGenerator, ImprovementInfo, ImprovementType,
+};
 
 pub struct Game {
     board: Board,
@@ -120,11 +124,15 @@ impl Game {
         match self.improvement_choice_set {
             Some(ref set) => {
                 match set.info {
-                    ImprovementInfo::ShieldUpgradeInfo(ref vec_shield_upgrade) => self.player.apply_upgrade(&vec_shield_upgrade[index]),
-                    ImprovementInfo::CoinPurchaseInfo(ref vec_coin_purchase) => self.player.apply_purchase(&vec_coin_purchase[index]),
+                    ImprovementInfo::ShieldUpgradeInfo(ref vec_shield_upgrade) => {
+                        self.player.apply_upgrade(&vec_shield_upgrade[index])
+                    }
+                    ImprovementInfo::CoinPurchaseInfo(ref vec_coin_purchase) => {
+                        self.player.apply_purchase(&vec_coin_purchase[index])
+                    }
                 };
-            },
-            None => {},
+            }
+            None => {}
         };
         self.step_improvement_queue();
     }

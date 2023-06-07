@@ -1,6 +1,6 @@
 use crate::game::being::{Being, BeingType};
-use crate::game::shield_upgrade::ShieldUpgrade;
 use crate::game::coin_purchase::CoinPurchase;
+use crate::game::shield_upgrade::ShieldUpgrade;
 
 pub struct Player {
     pub being: Being,
@@ -77,11 +77,7 @@ impl Player {
 
     // improvements
 
-    pub fn apply_upgrade(&mut self, upgrade: &ShieldUpgrade) {
+    pub fn apply_upgrade(&mut self, upgrade: &ShieldUpgrade) {}
 
-    }
-
-    pub fn apply_purchase(&mut self, purchase: &CoinPurchase) {
-
-    }
+    pub fn apply_purchase(&mut self, purchase: &CoinPurchase) {}
 }

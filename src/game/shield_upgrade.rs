@@ -105,7 +105,9 @@ impl ShieldUpgradeGenerator {
             ShieldUpgradeType::Blunting => ShieldUpgradeInfo::Blunting(1),
             ShieldUpgradeType::GoldPerCoin => ShieldUpgradeInfo::GoldPerCoin(25),
             ShieldUpgradeType::HitPointsPerPotion => ShieldUpgradeInfo::HitPointsPerPotion(1),
-            ShieldUpgradeType::UpgradePointsPerShield => ShieldUpgradeInfo::UpgradePointsPerShield(25),
+            ShieldUpgradeType::UpgradePointsPerShield => {
+                ShieldUpgradeInfo::UpgradePointsPerShield(25)
+            }
             ShieldUpgradeType::COUNT => unreachable!(""),
         };
         ShieldUpgrade {

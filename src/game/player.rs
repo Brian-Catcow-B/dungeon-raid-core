@@ -1,12 +1,14 @@
 use crate::game::being::{Being, BeingType};
-use crate::game::coin_purchase::CoinPurchase;
-use crate::game::shield_upgrade::ShieldUpgrade;
+use crate::game::coin_purchase::{CoinPurchase, CoinPurchaseInfo};
+use crate::game::shield_upgrade::{ShieldUpgrade, ShieldUpgradeInfo};
+use crate::game::stat_modifiers::PlayerStatModifiers;
 
 pub struct Player {
     pub being: Being,
     pub coins: isize,
     pub excess_shields: isize,
     pub experience_points: isize,
+    pub stat_modifiers: PlayerStatModifiers,
 }
 
 pub const COINS_PER_PURCHASE: isize = 10;
@@ -20,6 +22,7 @@ impl Default for Player {
             coins: 0,
             excess_shields: 0,
             experience_points: 0,
+            stat_modifiers: PlayerStatModifiers::default(),
         }
     }
 }
@@ -77,7 +80,39 @@ impl Player {
 
     // improvements
 
-    pub fn apply_upgrade(&mut self, upgrade: &ShieldUpgrade) {}
+    pub fn apply_upgrade(&mut self, upgrade: &ShieldUpgrade) {
+        match upgrade.shield_upgrade_info {
+            ShieldUpgradeInfo::Defense(def_inc) => {
+                self.being.max_shields += def_inc as isize;
+                self.add_shields(def_inc as isize);
+            }
+            ShieldUpgradeInfo::BaseDamage(base_dmg_inc) => {
+                self.being.base_output_damage += base_dmg_inc as isize;
+            }
+            ShieldUpgradeInfo::Blunting(blunting) => {
+                self.stat_modifiers.blunting += blunting;
+            }
+            ShieldUpgradeInfo::GoldPerCoin(gold_per_coin_inc) => {
+                self.stat_modifiers.gold_per_coin += gold_per_coin_inc;
+            }
+            ShieldUpgradeInfo::HitPointsPerPotion(hp_per_potion_inc) => {
+                self.stat_modifiers.hit_points_per_potion += hp_per_potion_inc;
+            }
+            ShieldUpgradeInfo::UpgradePointsPerShield(up_per_shield_inc) => {
+                self.stat_modifiers.upgrade_points_per_shield += up_per_shield_inc;
+            }
+        };
+    }
 
-    pub fn apply_purchase(&mut self, purchase: &CoinPurchase) {}
+    pub fn apply_purchase(&mut self, purchase: &CoinPurchase) {
+        match purchase.coin_purchase_info {
+            CoinPurchaseInfo::Defense(def_inc) => {
+                self.being.max_shields += def_inc as isize;
+                self.add_shields(def_inc as isize);
+            }
+            CoinPurchaseInfo::Attack(weap_dmg_inc) => {
+                self.being.weapon_output_damage += weap_dmg_inc as isize;
+            }
+        };
+    }
 }

@@ -12,7 +12,7 @@ use being::{Being, BeingType};
 mod player;
 use player::{Player, PlayerIsDead};
 
-mod stat_modifier_types;
+mod stat_modifiers;
 
 mod coin_purchase;
 mod shield_upgrade;

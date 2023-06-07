@@ -1,6 +1,6 @@
 use crate::game::improvement_choices::ImprovementChoiceDisplay;
 use crate::game::randomizer::{WeightedRandomizer, WeightedRandomizerType};
-use crate::game::stat_modifier_types::{DefenseIncrease, WeaponDamageIncrease};
+use crate::game::stat_modifiers::{DefenseIncrease, WeaponDamageIncrease};
 
 pub enum CoinPurchaseType {
     Defense,

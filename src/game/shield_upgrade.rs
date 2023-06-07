@@ -1,6 +1,6 @@
 use crate::game::improvement_choices::ImprovementChoiceDisplay;
 use crate::game::randomizer::{WeightedRandomizer, WeightedRandomizerType};
-use crate::game::stat_modifier_types::{
+use crate::game::stat_modifiers::{
     BaseDamageDecrease, BaseDamageIncrease, DefenseIncrease, HitPointsPerPotionIncrease,
     PercentGoldPerCoinIncrease, PercentUpgradePointsPerShieldIncrease,
 };

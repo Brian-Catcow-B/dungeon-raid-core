@@ -1,4 +1,4 @@
-use crate::game::being::{Being, BeingIsDead, BeingType};
+use crate::game::being::{Being, BeingType};
 use crate::game::shield_upgrade::ShieldUpgrade;
 use crate::game::coin_purchase::CoinPurchase;
 
@@ -33,11 +33,12 @@ fn rollover_add(val_into: &mut isize, val_other: isize, exclusive_max: isize) ->
     divi
 }
 
+pub type PlayerIsDead = bool;
 pub type NumPurchases = usize;
 pub type NumUpgrades = usize;
 pub type NumLevelUps = usize;
 impl Player {
-    pub fn take_damage(&mut self, damage: isize) -> BeingIsDead {
+    pub fn take_damage(&mut self, damage: isize) -> PlayerIsDead {
         self.being.take_damage(damage)
     }
 

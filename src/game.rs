@@ -7,10 +7,10 @@ use tile::{Tile, TilePosition, TileType};
 mod randomizer;
 
 mod being;
-use being::{Being, BeingIsDead, BeingType};
+use being::{Being, BeingType};
 
 mod player;
-use player::Player;
+use player::{Player, PlayerIsDead};
 
 mod coin_purchase;
 mod improvement_choices;
@@ -60,7 +60,7 @@ impl Game {
         self.board.incoming_damage()
     }
 
-    pub fn apply_incoming_damage(&mut self) -> BeingIsDead {
+    pub fn apply_incoming_damage(&mut self) -> PlayerIsDead {
         self.player.take_damage(self.board.incoming_damage())
     }
 

@@ -1,3 +1,5 @@
+use crate::game::stat_modifiers::BaseDamageDecrease;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum BeingType {
     Player,
@@ -28,6 +30,8 @@ const ENEMY_START_SH: isize = 0;
 const BOSS_START_DMG: isize = 1;
 const BOSS_START_HP: isize = 50;
 const BOSS_START_SH: isize = 4;
+
+const MIN_BASE_DAMAGE: isize = 1;
 
 pub type BeingIsDead = bool;
 impl Being {
@@ -103,6 +107,15 @@ impl Being {
             shields_to_add -= missing_sh;
             self.shields = self.max_shields;
             return shields_to_add;
+        }
+    }
+
+    pub fn blunt(&mut self, blunting: BaseDamageDecrease) {
+        if self.base_output_damage - MIN_BASE_DAMAGE <= blunting as isize {
+            self.base_output_damage = MIN_BASE_DAMAGE;
+        }
+        else {
+            self.base_output_damage -= blunting as isize;
         }
     }
 }

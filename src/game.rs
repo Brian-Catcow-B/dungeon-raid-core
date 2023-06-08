@@ -65,7 +65,13 @@ impl Game {
     }
 
     pub fn apply_incoming_damage(&mut self) -> PlayerIsDead {
-        self.player.take_damage(self.board.incoming_damage())
+        let player_has_shields = self.player.being.shields > 0;
+        let player_is_dead = self.player.take_damage(self.board.incoming_damage());
+        if player_has_shields {
+            self.board.apply_blunting(self.player.extra_stats.blunting);
+        }
+
+        player_is_dead
     }
 
     pub fn select_tile(&mut self, tile_position: TilePosition) -> bool {

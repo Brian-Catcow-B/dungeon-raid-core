@@ -8,7 +8,7 @@ pub struct Player {
     pub coins: isize,
     pub excess_shields: isize,
     pub experience_points: isize,
-    pub stat_modifiers: PlayerStatModifiers,
+    pub extra_stats: PlayerStatModifiers,
 }
 
 pub const COINS_PER_PURCHASE: isize = 10;
@@ -22,7 +22,7 @@ impl Default for Player {
             coins: 0,
             excess_shields: 0,
             experience_points: 0,
-            stat_modifiers: PlayerStatModifiers::default(),
+            extra_stats: PlayerStatModifiers::default(),
         }
     }
 }
@@ -90,16 +90,16 @@ impl Player {
                 self.being.base_output_damage += base_dmg_inc as isize;
             }
             ShieldUpgradeInfo::Blunting(blunting) => {
-                self.stat_modifiers.blunting += blunting;
+                self.extra_stats.blunting += blunting;
             }
             ShieldUpgradeInfo::GoldPerCoin(gold_per_coin_inc) => {
-                self.stat_modifiers.gold_per_coin += gold_per_coin_inc;
+                self.extra_stats.gold_per_coin += gold_per_coin_inc;
             }
             ShieldUpgradeInfo::HitPointsPerPotion(hp_per_potion_inc) => {
-                self.stat_modifiers.hit_points_per_potion += hp_per_potion_inc;
+                self.extra_stats.hit_points_per_potion += hp_per_potion_inc;
             }
             ShieldUpgradeInfo::UpgradePointsPerShield(up_per_shield_inc) => {
-                self.stat_modifiers.upgrade_points_per_shield += up_per_shield_inc;
+                self.extra_stats.upgrade_points_per_shield += up_per_shield_inc;
             }
         };
     }

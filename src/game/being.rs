@@ -23,11 +23,11 @@ const PLAYER_START_WEAPON_DMG: isize = 3;
 const PLAYER_START_HP: isize = 50;
 const PLAYER_START_SH: isize = 3;
 
-pub const ENEMY_START_DMG: isize = 1;
+const ENEMY_START_DMG: isize = 2;
 const ENEMY_START_HP: isize = 5;
 const ENEMY_START_SH: isize = 0;
 
-const BOSS_START_DMG: isize = 1;
+const BOSS_START_DMG: isize = 7;
 const BOSS_START_HP: isize = 50;
 const BOSS_START_SH: isize = 4;
 

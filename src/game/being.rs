@@ -73,9 +73,13 @@ impl Being {
         } else {
             damage -= self.shields;
             self.shields = 0;
-            self.hit_points -= damage;
+            if self.hit_points < damage {
+                self.hit_points = 0;
+            } else {
+                self.hit_points -= damage;
+            }
         }
-        self.hit_points <= 0
+        self.hit_points == 0
     }
 
     pub fn output_damage(&self, num_enemies: usize, num_weapons: usize) -> usize {

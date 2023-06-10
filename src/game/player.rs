@@ -11,8 +11,8 @@ pub struct Player {
     pub stat_modifiers: PlayerStatModifiers,
 }
 
-pub const COIN_CENTS_PER_PURCHASE: usize = 10000;
-pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 400;
+pub const COIN_CENTS_PER_PURCHASE: usize = 1000;
+pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
 pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 100;
 
 impl Default for Player {

@@ -70,7 +70,7 @@ impl Board {
         b
     }
 
-    pub fn incoming_damage(&self) -> isize {
+    pub fn incoming_damage(&self) -> usize {
         let mut dmg = 0;
         for col in self.tiles.iter() {
             for tile in col.iter() {
@@ -181,9 +181,9 @@ impl Board {
         }
     }
 
-    fn num_weapons_and_beings_in_selection(&self) -> (isize, isize) {
-        let mut num_weapons: isize = 0;
-        let mut num_beings: isize = 0;
+    fn num_weapons_and_beings_in_selection(&self) -> (usize, usize) {
+        let mut num_weapons: usize = 0;
+        let mut num_beings: usize = 0;
         match self.selection_start {
             Some(pos) => {
                 assert!(self.position_valid(pos));

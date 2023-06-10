@@ -60,7 +60,7 @@ impl Game {
         &self.improvement_choice_set
     }
 
-    pub fn incoming_damage(&self) -> isize {
+    pub fn incoming_damage(&self) -> usize {
         self.board.incoming_damage()
     }
 
@@ -68,7 +68,7 @@ impl Game {
         let player_has_shields = self.player.being.shields > 0;
         let player_is_dead = self.player.take_damage(self.board.incoming_damage());
         if player_has_shields {
-            self.board.apply_blunting(self.player.extra_stats.blunting);
+            self.board.apply_blunting(self.player.stat_modifiers.blunting);
         }
 
         player_is_dead

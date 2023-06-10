@@ -10,28 +10,28 @@ pub enum BeingType {
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Being {
     pub being_type: BeingType,
-    pub base_output_damage: isize,
-    pub weapon_output_damage: isize,
-    pub hit_points: isize,
-    pub max_hit_points: isize,
-    pub shields: isize,
-    pub max_shields: isize,
+    pub base_output_damage: usize,
+    pub weapon_output_damage: usize,
+    pub hit_points: usize,
+    pub max_hit_points: usize,
+    pub shields: usize,
+    pub max_shields: usize,
 }
 
-const PLAYER_START_BASE_DMG: isize = 3;
-const PLAYER_START_WEAPON_DMG: isize = 3;
-const PLAYER_START_HP: isize = 50;
-const PLAYER_START_SH: isize = 3;
+const PLAYER_START_BASE_DMG: usize = 3;
+const PLAYER_START_WEAPON_DMG: usize = 3;
+const PLAYER_START_HP: usize = 50;
+const PLAYER_START_SH: usize = 3;
 
-const ENEMY_START_DMG: isize = 2;
-const ENEMY_START_HP: isize = 5;
-const ENEMY_START_SH: isize = 0;
+const ENEMY_START_DMG: usize = 2;
+const ENEMY_START_HP: usize = 5;
+const ENEMY_START_SH: usize = 0;
 
-const BOSS_START_DMG: isize = 7;
-const BOSS_START_HP: isize = 50;
-const BOSS_START_SH: isize = 4;
+const BOSS_START_DMG: usize = 7;
+const BOSS_START_HP: usize = 50;
+const BOSS_START_SH: usize = 4;
 
-const MIN_BASE_DAMAGE: isize = 1;
+const MIN_BASE_DAMAGE: usize = 1;
 
 pub type BeingIsDead = bool;
 impl Being {
@@ -67,7 +67,7 @@ impl Being {
         }
     }
 
-    pub fn take_damage(&mut self, mut damage: isize) -> BeingIsDead {
+    pub fn take_damage(&mut self, mut damage: usize) -> BeingIsDead {
         if damage <= self.shields {
             self.shields -= damage;
         } else {
@@ -78,7 +78,7 @@ impl Being {
         self.hit_points <= 0
     }
 
-    pub fn output_damage(&self, num_enemies: isize, num_weapons: isize) -> isize {
+    pub fn output_damage(&self, num_enemies: usize, num_weapons: usize) -> usize {
         let mut dmg = num_weapons * self.weapon_output_damage;
         if num_enemies > 0 {
             dmg += self.base_output_damage;
@@ -86,7 +86,7 @@ impl Being {
         dmg
     }
 
-    pub fn add_hit_points(&mut self, mut hit_points_to_add: isize) -> isize {
+    pub fn add_hit_points(&mut self, mut hit_points_to_add: usize) -> usize {
         let missing_hp = self.max_hit_points - self.hit_points;
         if hit_points_to_add <= missing_hp {
             self.hit_points += hit_points_to_add;
@@ -98,7 +98,7 @@ impl Being {
         }
     }
 
-    pub fn add_shields(&mut self, mut shields_to_add: isize) -> isize {
+    pub fn add_shields(&mut self, mut shields_to_add: usize) -> usize {
         let missing_sh = self.max_shields - self.shields;
         if shields_to_add <= missing_sh {
             self.shields += shields_to_add;
@@ -111,11 +111,11 @@ impl Being {
     }
 
     pub fn blunt(&mut self, blunting: BaseDamageDecrease) {
-        if self.base_output_damage - MIN_BASE_DAMAGE <= blunting as isize {
+        if self.base_output_damage - MIN_BASE_DAMAGE <= blunting {
             self.base_output_damage = MIN_BASE_DAMAGE;
         }
         else {
-            self.base_output_damage -= blunting as isize;
+            self.base_output_damage -= blunting;
         }
     }
 }

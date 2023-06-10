@@ -6,13 +6,23 @@ pub type PercentGoldPerCoinIncrease = usize;
 pub type HitPointsPerPotionIncrease = usize;
 pub type PercentUpgradePointsPerShieldIncrease = usize;
 
-#[derive(Default)]
 pub struct PlayerStatModifiers {
     //pub defense_increase: DefenseIncrease,
     //pub weapon_damage_increase: WeaponDamageIncrease,
     //pub base_damage_increase: BaseDamageIncrease,
     pub blunting: BaseDamageDecrease,
-    pub gold_per_coin: PercentGoldPerCoinIncrease,
+    pub percent_gold_per_coin: PercentGoldPerCoinIncrease,
     pub hit_points_per_potion: HitPointsPerPotionIncrease,
-    pub upgrade_points_per_shield: PercentUpgradePointsPerShieldIncrease,
+    pub percent_upgrade_points_per_shield: PercentUpgradePointsPerShieldIncrease,
+}
+
+impl Default for PlayerStatModifiers {
+    fn default() -> Self {
+        Self {
+            blunting: 0,
+            percent_gold_per_coin: 100,
+            hit_points_per_potion: 1,
+            percent_upgrade_points_per_shield: 100,
+        }
+    }
 }

@@ -193,7 +193,7 @@ impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
 }
 
 impl TileInfo {
-    pub fn output_damage(self) -> isize {
+    pub fn output_damage(self) -> usize {
         match self {
             Self::Enemy(b) => b.output_damage(1, 0),
             Self::Boss(b) => b.output_damage(1, 0),
@@ -229,7 +229,7 @@ impl Tile {
         }
     }
 
-    pub fn slash(&mut self, damage: isize) -> Destroyed {
+    pub fn slash(&mut self, damage: usize) -> Destroyed {
         match self.tile_info {
             TileInfo::Enemy(ref mut being) => being.take_damage(damage),
             TileInfo::Boss(ref mut being) => being.take_damage(damage),

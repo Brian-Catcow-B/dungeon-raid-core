@@ -215,10 +215,15 @@ impl Board {
         (num_weapons, num_beings)
     }
 
-    pub fn drop_selection(&mut self, player: &Player) -> (bool, Vec<Tile>) {
+    pub fn drop_selection(
+        &mut self,
+        player: &Player,
+        weapon_collection_multiplier: usize,
+    ) -> (bool, Vec<Tile>) {
         let slash = self.selection_slashes();
         let (num_weapons, num_beings) = if slash {
-            self.num_weapons_and_beings_in_selection()
+            let (nw, nb) = self.num_weapons_and_beings_in_selection();
+            (nw * weapon_collection_multiplier, nb)
         } else {
             (0, 0)
         };

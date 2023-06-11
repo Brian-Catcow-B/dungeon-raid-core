@@ -2,7 +2,7 @@
 pub enum AbilityType {
     DoubleShieldCollection,
     DoubleCoinCollection,
-    DoubleWeaponDamage,
+    DoubleWeaponCollection,
     EnemiesToGold,
     ScrambleBoard,
     COUNT,
@@ -16,7 +16,7 @@ impl TryFrom<usize> for AbilityType {
         match value {
             0 => Ok(Self::DoubleShieldCollection),
             1 => Ok(Self::DoubleCoinCollection),
-            2 => Ok(Self::DoubleWeaponDamage),
+            2 => Ok(Self::DoubleWeaponCollection),
             3 => Ok(Self::EnemiesToGold),
             4 => Ok(Self::ScrambleBoard),
             _ => Err("Invalid value given to AbilityType::TryFrom<usize>"),
@@ -34,7 +34,9 @@ impl AbilityType {
             Self::DoubleCoinCollection => {
                 ("Plentiful Bounty", "Doubles all coin collection this turn")
             }
-            Self::DoubleWeaponDamage => ("Sharpened Blades", "Doubles all weapon damage this turn"),
+            Self::DoubleWeaponCollection => {
+                ("Sharpened Blades", "Doubles all weapon damage this turn")
+            }
             Self::EnemiesToGold => ("Touch of Midas", "Turns every non-boss enemy to gold"),
             Self::ScrambleBoard => ("Gambler's Shuffle", "Randomizes the position of each tile"),
             Self::COUNT => unreachable!(""),
@@ -45,7 +47,7 @@ impl AbilityType {
         match self {
             Self::DoubleShieldCollection => 19,
             Self::DoubleCoinCollection => 17,
-            Self::DoubleWeaponDamage => 15,
+            Self::DoubleWeaponCollection => 15,
             Self::EnemiesToGold => 23,
             Self::ScrambleBoard => 14,
             Self::COUNT => unreachable!(""),
@@ -55,7 +57,8 @@ impl AbilityType {
 
 pub struct Ability {
     pub ability_type: AbilityType,
-    pub current_cooldown: AbilityCooldown,
+    pub cooldown: AbilityCooldown,
+    pub running_cooldown: AbilityCooldown,
     pub current_level: usize,
 }
 
@@ -63,13 +66,18 @@ impl Ability {
     pub fn new(ability_type: AbilityType) -> Self {
         Self {
             ability_type,
-            current_cooldown: ability_type.base_cooldown(),
+            cooldown: ability_type.base_cooldown(),
+            running_cooldown: 0,
             current_level: 1,
         }
     }
 
     pub fn level_up(&mut self) {
         self.current_level += 1;
-        self.current_cooldown -= 1;
+        self.cooldown -= 1;
+    }
+
+    pub fn put_on_cooldown(&mut self) {
+        self.running_cooldown = self.cooldown;
     }
 }

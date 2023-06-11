@@ -4,6 +4,9 @@ use board::Board;
 pub mod tile;
 use tile::{Tile, TilePosition, TileType};
 
+mod collection_multipliers;
+use collection_multipliers::CollectionMultipliers;
+
 mod randomizer;
 
 mod being;
@@ -15,6 +18,8 @@ use player::{Player, PlayerIsDead};
 mod stat_modifiers;
 
 mod abilities;
+use abilities::AbilityType;
+
 mod coin_purchase;
 mod experience_point_level_up;
 mod shield_upgrade;
@@ -32,6 +37,7 @@ pub struct Game {
     improvement_choice_set_generator: ImprovementChoiceSetGenerator,
     improvement_choice_set: Option<ImprovementChoiceSet>,
     improvement_queue: Vec<ImprovementType>,
+    collection_multipliers: CollectionMultipliers,
 }
 
 pub const DEFAULT_BOARD_WIDTH: usize = 6;
@@ -49,6 +55,7 @@ impl Default for Game {
             improvement_choice_set_generator: ImprovementChoiceSetGenerator::default(),
             improvement_choice_set: None,
             improvement_queue: vec![],
+            collection_multipliers: CollectionMultipliers::default(),
         }
     }
 }
@@ -92,13 +99,18 @@ impl Game {
     }
 
     pub fn drop_selection(&mut self) -> bool {
-        let (slash, vec) = self.board.drop_selection(&self.player);
+        let (slash, vec) = self.board.drop_selection(
+            &self.player,
+            self.collection_multipliers.weapon_collection_multiplier,
+        );
         let (mut hearts, mut shields, mut coins, mut experience_points) = (0, 0, 0, 0);
         for tile in vec.iter() {
             match tile.tile_type {
                 TileType::Heart => hearts += 1,
-                TileType::Shield => shields += 1,
-                TileType::Coin => coins += 1,
+                TileType::Shield => {
+                    shields += self.collection_multipliers.shield_collection_multiplier
+                }
+                TileType::Coin => coins += self.collection_multipliers.coin_collection_multiplier,
                 TileType::Sword => {}
                 TileType::Enemy => experience_points += 1,
                 TileType::Boss => experience_points += 20,
@@ -107,6 +119,7 @@ impl Game {
                 }
             };
         }
+        self.collection_multipliers = CollectionMultipliers::default();
         if hearts > 0 {
             self.player.add_hit_points(hearts);
         }
@@ -126,7 +139,8 @@ impl Game {
         if experience_points > 0 {
             let num_level_ups = self.player.add_experience_points(experience_points);
             for _ in 0..num_level_ups {
-                self.improvement_queue.push(ImprovementType::ExperiencePoints);
+                self.improvement_queue
+                    .push(ImprovementType::ExperiencePoints);
             }
         }
 
@@ -162,6 +176,30 @@ impl Game {
             None => {}
         };
         self.step_improvement_queue();
+    }
+
+    pub fn cast_ability(&mut self, index: usize) {
+        let ability_opt = &mut self.player.abilities[index];
+        match ability_opt {
+            Some(ref mut a) => {
+                match a.ability_type {
+                    AbilityType::DoubleShieldCollection => {
+                        self.collection_multipliers.shield_collection_multiplier *= 2
+                    }
+                    AbilityType::DoubleCoinCollection => {
+                        self.collection_multipliers.coin_collection_multiplier *= 2
+                    }
+                    AbilityType::DoubleWeaponCollection => {
+                        self.collection_multipliers.weapon_collection_multiplier *= 2
+                    }
+                    AbilityType::EnemiesToGold => { /*TODO*/ }
+                    AbilityType::ScrambleBoard => { /*TODO*/ }
+                    AbilityType::COUNT => unreachable!(""),
+                };
+                a.put_on_cooldown();
+            }
+            None => {}
+        }
     }
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self) {

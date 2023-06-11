@@ -135,7 +135,7 @@ impl Game {
         slash
     }
 
-    pub fn choose_improvements(&mut self, indeces: Vec<usize>) {
+    pub fn choose_improvements(&mut self, indeces: &Vec<usize>) {
         match self.improvement_choice_set {
             Some(ref set) => {
                 match set.info {

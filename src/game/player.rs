@@ -11,14 +11,14 @@ pub struct Player {
     pub being: Being,
     pub coin_cents: usize,
     pub excess_shield_cents: usize,
-    pub experience_points: usize,
+    pub experience_point_cents: usize,
     pub stat_modifiers: PlayerStatModifiers,
     pub abilities: Vec<Option<Ability>>,
 }
 
 pub const COIN_CENTS_PER_PURCHASE: usize = 1000;
 pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
-pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 100;
+pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 1000;
 
 pub const ABILITY_SLOTS: usize = 4;
 
@@ -32,7 +32,7 @@ impl Default for Player {
             being: Being::new(BeingType::Player),
             coin_cents: 0,
             excess_shield_cents: 0,
-            experience_points: 0,
+            experience_point_cents: 0,
             stat_modifiers: PlayerStatModifiers::default(),
             abilities,
         }
@@ -92,8 +92,8 @@ impl Player {
         experience_point_tiles_collected: usize,
     ) -> NumLevelUps {
         rollover_add(
-            &mut self.experience_points,
-            experience_point_tiles_collected,
+            &mut self.experience_point_cents,
+            experience_point_tiles_collected * self.stat_modifiers.percent_xp_per_experience_point,
             EXPERIENCE_POINT_CENTS_PER_LEVEL_UP,
         )
     }

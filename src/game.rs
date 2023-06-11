@@ -178,10 +178,13 @@ impl Game {
         self.step_improvement_queue();
     }
 
-    pub fn cast_ability(&mut self, index: usize) {
+    pub fn cast_ability(&mut self, index: usize) -> bool {
         let ability_opt = &mut self.player.abilities[index];
         match ability_opt {
             Some(ref mut a) => {
+                if a.running_cooldown > 0 {
+                    return false;
+                }
                 match a.ability_type {
                     AbilityType::DoubleShieldCollection => {
                         self.collection_multipliers.shield_collection_multiplier *= 2
@@ -197,8 +200,9 @@ impl Game {
                     AbilityType::COUNT => unreachable!(""),
                 };
                 a.put_on_cooldown();
+                true
             }
-            None => {}
+            None => false,
         }
     }
 

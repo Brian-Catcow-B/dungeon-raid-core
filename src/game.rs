@@ -145,6 +145,19 @@ impl Game {
         }
 
         self.step_improvement_queue();
+        if slash {
+            // cooldowns down by 1
+            for ability_opt in self.player.abilities.iter_mut() {
+                match ability_opt {
+                    Some(ref mut a) => {
+                        if a.running_cooldown > 0 {
+                            a.running_cooldown -= 1
+                        }
+                    }
+                    None => {}
+                };
+            }
+        }
 
         slash
     }

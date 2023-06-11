@@ -93,15 +93,15 @@ impl Game {
 
     pub fn drop_selection(&mut self) -> bool {
         let (slash, vec) = self.board.drop_selection(&self.player);
-        let (mut hearts, mut shields, mut coins) = (0, 0, 0);
+        let (mut hearts, mut shields, mut coins, mut experience_points) = (0, 0, 0, 0);
         for tile in vec.iter() {
             match tile.tile_type {
                 TileType::Heart => hearts += 1,
                 TileType::Shield => shields += 1,
                 TileType::Coin => coins += 1,
                 TileType::Sword => {}
-                TileType::Enemy => { /*TODO: add xp*/ }
-                TileType::Boss => { /*TODO: add xp*/ }
+                TileType::Enemy => experience_points += 1,
+                TileType::Boss => experience_points += 20,
                 TileType::COUNT | TileType::None => {
                     unreachable!("drop_selection went over invalid TileType")
                 }
@@ -121,6 +121,12 @@ impl Game {
             let num_purchases = self.player.add_coins(coins);
             for _ in 0..num_purchases {
                 self.improvement_queue.push(ImprovementType::Coins);
+            }
+        }
+        if experience_points > 0 {
+            let num_level_ups = self.player.add_experience_points(experience_points);
+            for _ in 0..num_level_ups {
+                self.improvement_queue.push(ImprovementType::ExperiencePoints);
             }
         }
 

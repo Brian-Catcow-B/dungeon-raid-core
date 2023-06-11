@@ -1,8 +1,8 @@
 use crate::game::being::Being;
 use crate::game::player::Player;
 use crate::game::randomizer::{Weight, WeightedRandomizer};
-use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 use crate::game::stat_modifiers::BaseDamageDecrease;
+use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 
 use std::io::Write;
 const LOG_FILE: &'static str = "core_log.txt";
@@ -268,7 +268,7 @@ impl Board {
                 match tile.tile_info {
                     TileInfo::Enemy(ref mut e) => e.blunt(blunting),
                     TileInfo::Boss(ref mut b) => b.blunt(blunting),
-                    _ => {},
+                    _ => {}
                 }
             }
         }

@@ -14,7 +14,9 @@ use player::{Player, PlayerIsDead};
 
 mod stat_modifiers;
 
+mod abilities;
 mod coin_purchase;
+mod experience_point_level_up;
 mod shield_upgrade;
 
 pub mod improvement_choices;
@@ -68,7 +70,8 @@ impl Game {
         let player_has_shields = self.player.being.shields > 0;
         let player_is_dead = self.player.take_damage(self.board.incoming_damage());
         if player_has_shields {
-            self.board.apply_blunting(self.player.stat_modifiers.blunting);
+            self.board
+                .apply_blunting(self.player.stat_modifiers.blunting);
         }
 
         player_is_dead
@@ -126,15 +129,27 @@ impl Game {
         slash
     }
 
-    pub fn choose_improvement(&mut self, index: usize) {
+    pub fn choose_improvements(&mut self, indeces: Vec<usize>) {
         match self.improvement_choice_set {
             Some(ref set) => {
                 match set.info {
                     ImprovementInfo::ShieldUpgradeInfo(ref vec_shield_upgrade) => {
-                        self.player.apply_upgrade(&vec_shield_upgrade[index])
+                        for given_idx in indeces.iter() {
+                            self.player.apply_upgrade(&vec_shield_upgrade[*given_idx]);
+                        }
                     }
                     ImprovementInfo::CoinPurchaseInfo(ref vec_coin_purchase) => {
-                        self.player.apply_purchase(&vec_coin_purchase[index])
+                        for given_idx in indeces.iter() {
+                            self.player.apply_purchase(&vec_coin_purchase[*given_idx]);
+                        }
+                    }
+                    ImprovementInfo::ExperiencePointLevelUpInfo(
+                        ref vec_experience_point_level_up,
+                    ) => {
+                        for given_idx in indeces.iter() {
+                            self.player
+                                .apply_level_up(&vec_experience_point_level_up[*given_idx]);
+                        }
                     }
                 };
             }

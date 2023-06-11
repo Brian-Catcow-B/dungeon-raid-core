@@ -117,8 +117,7 @@ impl Being {
     pub fn blunt(&mut self, blunting: BaseDamageDecrease) {
         if self.base_output_damage - MIN_BASE_DAMAGE <= blunting {
             self.base_output_damage = MIN_BASE_DAMAGE;
-        }
-        else {
+        } else {
             self.base_output_damage -= blunting;
         }
     }

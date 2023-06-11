@@ -1,5 +1,9 @@
+use crate::game::abilities::{Ability, AbilityType};
 use crate::game::being::{Being, BeingType};
 use crate::game::coin_purchase::{CoinPurchase, CoinPurchaseInfo};
+use crate::game::experience_point_level_up::{
+    ExperiencePointLevelUp, ExperiencePointLevelUpInfo, StatLevelUpInfo,
+};
 use crate::game::shield_upgrade::{ShieldUpgrade, ShieldUpgradeInfo};
 use crate::game::stat_modifiers::PlayerStatModifiers;
 
@@ -9,20 +13,28 @@ pub struct Player {
     pub excess_shield_cents: usize,
     pub experience_points: usize,
     pub stat_modifiers: PlayerStatModifiers,
+    pub abilities: Vec<Option<Ability>>,
 }
 
 pub const COIN_CENTS_PER_PURCHASE: usize = 1000;
 pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
 pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 100;
 
+pub const ABILITY_SLOTS: usize = 4;
+
 impl Default for Player {
     fn default() -> Self {
+        let mut abilities = Vec::with_capacity(ABILITY_SLOTS);
+        for _ in 0..ABILITY_SLOTS {
+            abilities.push(None);
+        }
         Self {
             being: Being::new(BeingType::Player),
             coin_cents: 0,
             excess_shield_cents: 0,
             experience_points: 0,
             stat_modifiers: PlayerStatModifiers::default(),
+            abilities,
         }
     }
 }
@@ -50,11 +62,16 @@ impl Player {
     }
 
     pub fn add_hit_points(&mut self, heart_potions_collected: usize) -> usize {
-        self.being.add_hit_points(heart_potions_collected * self.stat_modifiers.hit_points_per_potion)
+        self.being
+            .add_hit_points(heart_potions_collected * self.stat_modifiers.hit_points_per_potion)
     }
 
     pub fn add_coins(&mut self, coin_tiles_collected: usize) -> NumPurchases {
-        rollover_add(&mut self.coin_cents, coin_tiles_collected * self.stat_modifiers.percent_gold_per_coin, COIN_CENTS_PER_PURCHASE)
+        rollover_add(
+            &mut self.coin_cents,
+            coin_tiles_collected * self.stat_modifiers.percent_gold_per_coin,
+            COIN_CENTS_PER_PURCHASE,
+        )
     }
 
     fn add_excess_shields(&mut self, excess_shields_to_add: usize) -> NumUpgrades {
@@ -70,7 +87,10 @@ impl Player {
         self.add_excess_shields(excess)
     }
 
-    pub fn add_experience_points(&mut self, experience_point_tiles_collected: usize) -> NumLevelUps {
+    pub fn add_experience_points(
+        &mut self,
+        experience_point_tiles_collected: usize,
+    ) -> NumLevelUps {
         rollover_add(
             &mut self.experience_points,
             experience_point_tiles_collected,
@@ -114,5 +134,40 @@ impl Player {
                 self.being.weapon_output_damage += weap_dmg_inc;
             }
         };
+    }
+
+    fn handle_ability_level_up(&mut self, ability_type: AbilityType) {
+        for ability_opt in self.abilities.iter_mut() {
+            match ability_opt {
+                Some(ref mut a) => {
+                    if a.ability_type == ability_type {
+                        a.level_up();
+                        return;
+                    }
+                }
+                None => {
+                    *ability_opt = Some(Ability::new(ability_type));
+                    return;
+                }
+            }
+        }
+        unreachable!("it should be impossible to level up an ability that the player doesn't have if there are no more slots available for a new one");
+    }
+
+    pub fn apply_level_up(&mut self, level_up: &ExperiencePointLevelUp) {
+        match level_up.experience_point_level_up_info {
+            ExperiencePointLevelUpInfo::Ability(atype) => {
+                self.handle_ability_level_up(atype);
+            }
+            ExperiencePointLevelUpInfo::Stat(sluinfo) => match sluinfo {
+                StatLevelUpInfo::MaxHitPoints(max_hp_inc) => {
+                    self.being.max_hit_points += max_hp_inc;
+                    self.being.hit_points += max_hp_inc;
+                }
+                StatLevelUpInfo::BaseOutputDamage(bod_inc) => {
+                    self.being.base_output_damage += bod_inc;
+                }
+            },
+        }
     }
 }

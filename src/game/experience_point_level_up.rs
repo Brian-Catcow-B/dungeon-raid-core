@@ -138,7 +138,17 @@ impl ExperiencePointLevelUpGenerator {
     pub fn get(&mut self) -> Option<ExperiencePointLevelUp> {
         let xplu_opt = if self.generation < NUM_ABILITY_OPTIONS {
             // first are ability options
-            if ABILITY_SLOTS - self.chosen_abilities.len() <= self.generation {
+            if ABILITY_SLOTS - self.chosen_abilities.len() > self.generation {
+                // level up potentially unique, potentially existing abilities
+                let atype = AbilityType::try_from(
+                    self.ability_type_randomizer.weighted_random().expect(""),
+                )
+                .expect("");
+                self.chosen_ability_type_randomizer.meta_remove_value(atype as usize);
+                Some(ExperiencePointLevelUp {
+                    experience_point_level_up_info: ExperiencePointLevelUpInfo::Ability(atype),
+                })
+            } else {
                 // level up existing abilities (since we can't give more
                 // options than there are available ability slots)
                 let value_opt = self.chosen_ability_type_randomizer.weighted_random();
@@ -146,7 +156,6 @@ impl ExperiencePointLevelUpGenerator {
                 // chosen_ability_type_randomizer when they hit max level
                 match value_opt {
                     Some(value) => {
-                        self.ability_type_randomizer.meta_remove_value(value);
                         let atype = AbilityType::try_from(value).expect("");
                         Some(ExperiencePointLevelUp {
                             experience_point_level_up_info: ExperiencePointLevelUpInfo::Ability(
@@ -156,15 +165,6 @@ impl ExperiencePointLevelUpGenerator {
                     }
                     None => None,
                 }
-            } else {
-                // level up potentially unique, potentially existing abilities
-                let atype = AbilityType::try_from(
-                    self.ability_type_randomizer.weighted_random().expect(""),
-                )
-                .expect("");
-                Some(ExperiencePointLevelUp {
-                    experience_point_level_up_info: ExperiencePointLevelUpInfo::Ability(atype),
-                })
             }
         } else {
             // give the rest as stat options
@@ -186,9 +186,7 @@ impl ExperiencePointLevelUpGenerator {
     }
 
     pub fn reset(&mut self) {
-        // note we do NOT reset the chosen_ability_type_randomizer
-        // because that stores important metadata pertaining to abilities
-        // that are at their max level
+        self.chosen_ability_type_randomizer.reset_metadata();
         self.ability_type_randomizer.reset_metadata();
         self.stat_level_up_type_randomizer.reset_metadata();
         self.generation = 0;
@@ -205,7 +203,7 @@ impl ExperiencePointLevelUpGenerator {
         if exists {
             if ability_level == MAX_ABILITY_LEVEL {
                 self.chosen_ability_type_randomizer
-                    .meta_remove_value(ability_type as usize);
+                    .remove_value(ability_type as usize);
                 self.ability_type_randomizer
                     .remove_value(ability_type as usize);
             }

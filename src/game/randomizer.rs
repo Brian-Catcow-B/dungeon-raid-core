@@ -159,6 +159,12 @@ impl WeightedRandomizer {
     }
 
     pub fn set_weight(&mut self, value: usize, new_weight: Weight) {
+        // TODO: in a general use-case, this actually doesn't work exactly
+        // the way it's intended, since if a value's weight is already set
+        // to x and the weight_meta_modifier is set to x but the new weight
+        // is y < x then there will be a problem because the weight_meta_modifier
+        // would bring it below 0 (or maybe that's not a problem? idk lol none of
+        // my use-cases have done this)
         let idx = self.true_find(value);
         self.total_weight += new_weight - self.value_weight_vec[idx].weight;
         self.value_weight_vec[idx].weight = new_weight;
@@ -167,7 +173,13 @@ impl WeightedRandomizer {
     pub fn remove_value(&mut self, value: usize) -> bool {
         match self.find(value) {
             Ok(idx) => {
-                self.value_weight_vec[idx] = ValueWeight::new(value);
+                let vw = &mut self.value_weight_vec[idx];
+                if vw.weight_meta_modifier < 0 {
+                    self.total_weight -= vw.weight - vw.weight_meta_modifier as usize;
+                } else {
+                    self.total_weight -= vw.weight + vw.weight_meta_modifier as usize;
+                }
+                *vw = ValueWeight::new(value);
                 true
             }
             Err(()) => false,
@@ -177,8 +189,13 @@ impl WeightedRandomizer {
     pub fn meta_remove_value(&mut self, value: usize) -> bool {
         match self.find(value) {
             Ok(idx) => {
-                self.value_weight_vec[idx].weight_meta_modifier =
-                    -(self.value_weight_vec[idx].weight as isize);
+                let vw = &mut self.value_weight_vec[idx];
+                if vw.weight_meta_modifier < 0 {
+                    self.total_weight -= vw.weight - vw.weight_meta_modifier as usize;
+                } else {
+                    self.total_weight -= vw.weight + vw.weight_meta_modifier as usize;
+                }
+                vw.weight_meta_modifier = -(vw.weight as isize);
                 true
             }
             Err(()) => false,

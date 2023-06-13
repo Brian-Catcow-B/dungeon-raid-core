@@ -19,7 +19,7 @@ pub struct Player {
 
 pub const COIN_CENTS_PER_PURCHASE: usize = 1000;
 pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
-pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 1000;
+pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 300;
 
 impl Default for Player {
     fn default() -> Self {

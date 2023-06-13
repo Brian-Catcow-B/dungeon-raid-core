@@ -14,6 +14,14 @@ impl ValueWeight {
             weight_meta_modifier: 0,
         }
     }
+
+    fn true_weight(&self) -> Weight {
+        if self.weight_meta_modifier < 0 {
+            self.weight - ((-1) * self.weight_meta_modifier) as usize
+        } else {
+            self.weight + self.weight_meta_modifier as usize
+        }
+    }
 }
 
 pub enum WeightedRandomizerType {
@@ -50,14 +58,19 @@ impl WeightedRandomizer {
         }
     }
 
+    fn weight_update(&mut self, old: Weight, new: Weight) {
+        if old < new {
+            self.total_weight += new - old;
+        } else {
+            self.total_weight -= old - new;
+        };
+    }
+
     pub fn reset_metadata(&mut self) {
-        for var in self.value_weight_vec.iter_mut() {
-            if var.weight_meta_modifier >= 0 {
-                self.total_weight -= var.weight_meta_modifier as usize;
-            } else {
-                self.total_weight += ((-1) * var.weight_meta_modifier) as usize;
-            }
-            var.weight_meta_modifier = 0;
+        for idx in 0..self.value_weight_vec.len() {
+            let old_true_weight = self.value_weight_vec[idx].true_weight();
+            self.value_weight_vec[idx].weight_meta_modifier = 0;
+            self.weight_update(old_true_weight, self.value_weight_vec[idx].true_weight());
         }
     }
 
@@ -81,28 +94,27 @@ impl WeightedRandomizer {
         }
     }
 
+    fn meta_remove_idx(&mut self, idx: usize) {
+        let old_true_weight = self.value_weight_vec[idx].true_weight();
+        self.weight_update(old_true_weight, 0);
+        self.value_weight_vec[idx].weight_meta_modifier =
+            -(self.value_weight_vec[idx].weight as isize);
+    }
+
     pub fn weighted_random(&mut self) -> Option<usize> {
         if self.total_weight == 0 {
             return None;
         }
         let random_num = Self::evenly_distributed_random(self.total_weight - 1);
         let mut running_sum = 0;
-        for var in self.value_weight_vec.iter_mut() {
-            running_sum += var.weight;
-            if var.weight_meta_modifier > 0 {
-                running_sum += var.weight_meta_modifier as usize;
-            } else {
-                running_sum -= ((-1) * var.weight_meta_modifier) as usize;
-            }
+        for idx in 0..self.value_weight_vec.len() {
+            running_sum += self.value_weight_vec[idx].true_weight();
             if random_num < running_sum {
                 match self.weighted_randomizer_type {
                     WeightedRandomizerType::Default => {}
-                    WeightedRandomizerType::MetaSubAllOnObtain => {
-                        var.weight_meta_modifier = (-1) * (var.weight as isize);
-                        self.total_weight -= var.weight;
-                    }
-                }
-                return Some(var.value);
+                    WeightedRandomizerType::MetaSubAllOnObtain => self.meta_remove_idx(idx),
+                };
+                return Some(self.value_weight_vec[idx].value);
             }
         }
         unreachable!(
@@ -159,27 +171,23 @@ impl WeightedRandomizer {
     }
 
     pub fn set_weight(&mut self, value: usize, new_weight: Weight) {
-        // TODO: in a general use-case, this actually doesn't work exactly
-        // the way it's intended, since if a value's weight is already set
-        // to x and the weight_meta_modifier is set to x but the new weight
-        // is y < x then there will be a problem because the weight_meta_modifier
-        // would bring it below 0 (or maybe that's not a problem? idk lol none of
-        // my use-cases have done this)
         let idx = self.true_find(value);
-        self.total_weight += new_weight - self.value_weight_vec[idx].weight;
-        self.value_weight_vec[idx].weight = new_weight;
+        let vw = &mut self.value_weight_vec[idx];
+        let old_true_weight = vw.true_weight();
+        vw.weight = new_weight;
+        if vw.weight_meta_modifier < 0 && ((-1) * vw.weight_meta_modifier) as usize > vw.weight {
+            vw.weight_meta_modifier = vw.weight as isize * (-1);
+        }
+        let new_true_weight = vw.true_weight();
+        self.weight_update(old_true_weight, new_true_weight);
     }
 
     pub fn remove_value(&mut self, value: usize) -> bool {
         match self.find(value) {
             Ok(idx) => {
-                let vw = &mut self.value_weight_vec[idx];
-                if vw.weight_meta_modifier < 0 {
-                    self.total_weight -= vw.weight - vw.weight_meta_modifier as usize;
-                } else {
-                    self.total_weight -= vw.weight + vw.weight_meta_modifier as usize;
-                }
-                *vw = ValueWeight::new(value);
+                let old_true_weight = self.value_weight_vec[idx].true_weight();
+                self.weight_update(old_true_weight, 0);
+                self.value_weight_vec[idx] = ValueWeight::new(value);
                 true
             }
             Err(()) => false,
@@ -189,13 +197,7 @@ impl WeightedRandomizer {
     pub fn meta_remove_value(&mut self, value: usize) -> bool {
         match self.find(value) {
             Ok(idx) => {
-                let vw = &mut self.value_weight_vec[idx];
-                if vw.weight_meta_modifier < 0 {
-                    self.total_weight -= vw.weight - vw.weight_meta_modifier as usize;
-                } else {
-                    self.total_weight -= vw.weight + vw.weight_meta_modifier as usize;
-                }
-                vw.weight_meta_modifier = -(vw.weight as isize);
+                self.meta_remove_idx(idx);
                 true
             }
             Err(()) => false,

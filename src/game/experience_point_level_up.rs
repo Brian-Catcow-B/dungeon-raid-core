@@ -146,6 +146,7 @@ impl ExperiencePointLevelUpGenerator {
                 // chosen_ability_type_randomizer when they hit max level
                 match value_opt {
                     Some(value) => {
+                        self.ability_type_randomizer.meta_remove_value(value);
                         let atype = AbilityType::try_from(value).expect("");
                         Some(ExperiencePointLevelUp {
                             experience_point_level_up_info: ExperiencePointLevelUpInfo::Ability(

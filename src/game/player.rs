@@ -146,7 +146,7 @@ impl Player {
                 }
                 None => {
                     *ability_opt = Some(Ability::new(ability_type));
-                    return 1;
+                    return ability_opt.as_ref().expect("").current_level;
                 }
             }
         }

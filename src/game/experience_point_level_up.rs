@@ -205,6 +205,8 @@ impl ExperiencePointLevelUpGenerator {
             if ability_level == MAX_ABILITY_LEVEL {
                 self.chosen_ability_type_randomizer
                     .meta_remove_value(ability_type as usize);
+                self.ability_type_randomizer
+                    .remove_value(ability_type as usize);
             }
         } else {
             self.chosen_abilities.push(ability_type);

@@ -164,6 +164,16 @@ impl WeightedRandomizer {
         self.value_weight_vec[idx].weight = new_weight;
     }
 
+    pub fn remove_value(&mut self, value: usize) -> bool {
+        match self.find(value) {
+            Ok(idx) => {
+                self.value_weight_vec[idx] = ValueWeight::new(value);
+                true
+            }
+            Err(()) => false,
+        }
+    }
+
     pub fn meta_remove_value(&mut self, value: usize) -> bool {
         match self.find(value) {
             Ok(idx) => {

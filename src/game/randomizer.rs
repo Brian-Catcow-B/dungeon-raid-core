@@ -111,6 +111,25 @@ impl WeightedRandomizer {
         );
     }
 
+    fn find(&self, value: usize) -> Result<usize, ()> {
+        if self.indexed {
+            if value < self.value_weight_vec.len() {
+                return Ok(value);
+            } else {
+                return Err(());
+            }
+        } else {
+            for idx in 0..self.value_weight_vec.len() {
+                if self.value_weight_vec[idx].value == value {
+                    return Ok(idx);
+                } else if self.value_weight_vec[idx].value > value {
+                    return Err(());
+                }
+            }
+            return Err(());
+        }
+    }
+
     fn true_find(&mut self, value: usize) -> usize {
         if self.indexed {
             if value < self.value_weight_vec.len() {
@@ -143,6 +162,17 @@ impl WeightedRandomizer {
         let idx = self.true_find(value);
         self.total_weight += new_weight - self.value_weight_vec[idx].weight;
         self.value_weight_vec[idx].weight = new_weight;
+    }
+
+    pub fn meta_remove_value(&mut self, value: usize) -> bool {
+        match self.find(value) {
+            Ok(idx) => {
+                self.value_weight_vec[idx].weight_meta_modifier =
+                    -(self.value_weight_vec[idx].weight as isize);
+                true
+            }
+            Err(()) => false,
+        }
     }
 }
 

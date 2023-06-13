@@ -22,6 +22,7 @@ use abilities::AbilityType;
 
 mod coin_purchase;
 mod experience_point_level_up;
+use experience_point_level_up::ExperiencePointLevelUpInfo;
 mod shield_upgrade;
 
 pub mod improvement_choices;
@@ -42,6 +43,8 @@ pub struct Game {
 
 pub const DEFAULT_BOARD_WIDTH: usize = 6;
 pub const DEFAULT_BOARD_HEIGHT: usize = 6;
+
+pub const ABILITY_SLOTS: usize = 4;
 
 impl Default for Game {
     fn default() -> Game {
@@ -180,8 +183,14 @@ impl Game {
                         ref vec_experience_point_level_up,
                     ) => {
                         for given_idx in indeces.iter() {
-                            self.player
-                                .apply_level_up(&vec_experience_point_level_up[*given_idx]);
+                            let lvl_up = &vec_experience_point_level_up[*given_idx];
+                            let maybe_ability_level = self.player.apply_level_up(lvl_up);
+                            if let ExperiencePointLevelUpInfo::Ability(atype) =
+                                lvl_up.experience_point_level_up_info
+                            {
+                                self.improvement_choice_set_generator
+                                    .ability_upgraded(atype, maybe_ability_level);
+                            }
                         }
                     }
                 };

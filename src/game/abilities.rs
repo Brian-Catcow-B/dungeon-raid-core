@@ -7,6 +7,7 @@ pub enum AbilityType {
     ScrambleBoard,
     COUNT,
 }
+pub const MAX_ABILITY_LEVEL: usize = 10;
 pub type AbilityCooldown = usize;
 
 impl TryFrom<usize> for AbilityType {
@@ -68,7 +69,7 @@ impl Ability {
             ability_type,
             cooldown: ability_type.base_cooldown(),
             running_cooldown: 0,
-            current_level: 1,
+            current_level: 10,
         }
     }
 

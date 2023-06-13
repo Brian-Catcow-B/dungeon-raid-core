@@ -1,5 +1,6 @@
 pub const IMPROVEMENT_CHOICE_SET_SIZE: usize = 3;
 
+use crate::game::abilities::AbilityType;
 use crate::game::coin_purchase::{CoinPurchase, CoinPurchaseGenerator};
 use crate::game::experience_point_level_up::{
     ExperiencePointLevelUp, ExperiencePointLevelUpGenerator,
@@ -18,7 +19,7 @@ impl ImprovementType {
         match self {
             Self::Shields => "Upgrade a stat",
             Self::Coins => "Purchase an item",
-            Self::ExperiencePoints => "Level Up a facet",
+            Self::ExperiencePoints => "Level Up two facets",
         }
     }
 
@@ -99,10 +100,17 @@ impl ImprovementChoiceSetGenerator {
                 let mut experience_point_level_ups: Vec<ExperiencePointLevelUp> =
                     Vec::with_capacity(num_choices);
                 for pushing_idx in 0..num_choices {
-                    experience_point_level_ups.push(self.experience_point_level_up_generator.get());
-                    displays.push(ImprovementChoiceDisplay::from(
-                        &experience_point_level_ups[pushing_idx],
-                    ));
+                    // we could obtain None because if all the abilities hit max level
+                    // then only stats are available
+                    match self.experience_point_level_up_generator.get() {
+                        Some(xplu) => {
+                            experience_point_level_ups.push(xplu);
+                            displays.push(ImprovementChoiceDisplay::from(
+                                &experience_point_level_ups[pushing_idx],
+                            ));
+                        }
+                        None => {}
+                    }
                 }
                 self.experience_point_level_up_generator.reset();
                 ImprovementChoiceSet {
@@ -114,5 +122,10 @@ impl ImprovementChoiceSetGenerator {
                 }
             }
         }
+    }
+
+    pub fn ability_upgraded(&mut self, ability_type: AbilityType, ability_level: usize) {
+        self.experience_point_level_up_generator
+            .ability_upgraded(ability_type, ability_level)
     }
 }

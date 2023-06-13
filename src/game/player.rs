@@ -6,6 +6,7 @@ use crate::game::experience_point_level_up::{
 };
 use crate::game::shield_upgrade::{ShieldUpgrade, ShieldUpgradeInfo};
 use crate::game::stat_modifiers::PlayerStatModifiers;
+use crate::game::ABILITY_SLOTS;
 
 pub struct Player {
     pub being: Being,
@@ -19,8 +20,6 @@ pub struct Player {
 pub const COIN_CENTS_PER_PURCHASE: usize = 1000;
 pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
 pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 1000;
-
-pub const ABILITY_SLOTS: usize = 4;
 
 impl Default for Player {
     fn default() -> Self {
@@ -136,38 +135,40 @@ impl Player {
         };
     }
 
-    fn handle_ability_level_up(&mut self, ability_type: AbilityType) {
+    fn handle_ability_level_up(&mut self, ability_type: AbilityType) -> usize {
         for ability_opt in self.abilities.iter_mut() {
             match ability_opt {
                 Some(ref mut a) => {
                     if a.ability_type == ability_type {
                         a.level_up();
-                        return;
+                        return a.current_level;
                     }
                 }
                 None => {
                     *ability_opt = Some(Ability::new(ability_type));
-                    return;
+                    return 1;
                 }
             }
         }
         unreachable!("it should be impossible to level up an ability that the player doesn't have if there are no more slots available for a new one");
     }
 
-    pub fn apply_level_up(&mut self, level_up: &ExperiencePointLevelUp) {
+    // returns the level of the leveled up ability if an ability was upgraded and 0 otherwise
+    pub fn apply_level_up(&mut self, level_up: &ExperiencePointLevelUp) -> usize {
         match level_up.experience_point_level_up_info {
-            ExperiencePointLevelUpInfo::Ability(atype) => {
-                self.handle_ability_level_up(atype);
+            ExperiencePointLevelUpInfo::Ability(atype) => self.handle_ability_level_up(atype),
+            ExperiencePointLevelUpInfo::Stat(sluinfo) => {
+                match sluinfo {
+                    StatLevelUpInfo::MaxHitPoints(max_hp_inc) => {
+                        self.being.max_hit_points += max_hp_inc;
+                        self.being.hit_points += max_hp_inc;
+                    }
+                    StatLevelUpInfo::BaseOutputDamage(bod_inc) => {
+                        self.being.base_output_damage += bod_inc;
+                    }
+                };
+                0
             }
-            ExperiencePointLevelUpInfo::Stat(sluinfo) => match sluinfo {
-                StatLevelUpInfo::MaxHitPoints(max_hp_inc) => {
-                    self.being.max_hit_points += max_hp_inc;
-                    self.being.hit_points += max_hp_inc;
-                }
-                StatLevelUpInfo::BaseOutputDamage(bod_inc) => {
-                    self.being.base_output_damage += bod_inc;
-                }
-            },
         }
     }
 }

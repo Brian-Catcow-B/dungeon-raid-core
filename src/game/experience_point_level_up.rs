@@ -144,7 +144,8 @@ impl ExperiencePointLevelUpGenerator {
                     self.ability_type_randomizer.weighted_random().expect(""),
                 )
                 .expect("");
-                self.chosen_ability_type_randomizer.meta_remove_value(atype as usize);
+                self.chosen_ability_type_randomizer
+                    .meta_remove_value(atype as usize);
                 Some(ExperiencePointLevelUp {
                     experience_point_level_up_info: ExperiencePointLevelUpInfo::Ability(atype),
                 })

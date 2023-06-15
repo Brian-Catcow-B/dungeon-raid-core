@@ -99,7 +99,8 @@ impl ImprovementChoiceSetGenerator {
             ImprovementType::ExperiencePoints => {
                 let mut experience_point_level_ups: Vec<ExperiencePointLevelUp> =
                     Vec::with_capacity(num_choices);
-                for pushing_idx in 0..num_choices {
+                let mut pushing_idx = 0;
+                for _ in 0..num_choices {
                     // we could obtain None because if all the abilities hit max level
                     // then only stats are available
                     match self.experience_point_level_up_generator.get() {
@@ -108,6 +109,7 @@ impl ImprovementChoiceSetGenerator {
                             displays.push(ImprovementChoiceDisplay::from(
                                 &experience_point_level_ups[pushing_idx],
                             ));
+                            pushing_idx += 1;
                         }
                         None => {}
                     }

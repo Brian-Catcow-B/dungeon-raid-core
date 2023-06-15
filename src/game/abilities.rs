@@ -3,7 +3,7 @@ pub enum AbilityType {
     DoubleShieldCollection,
     DoubleCoinCollection,
     DoubleWeaponCollection,
-    EnemiesToGold,
+    EnemiesToCoins,
     ScrambleBoard,
     COUNT,
 }
@@ -18,7 +18,7 @@ impl TryFrom<usize> for AbilityType {
             0 => Ok(Self::DoubleShieldCollection),
             1 => Ok(Self::DoubleCoinCollection),
             2 => Ok(Self::DoubleWeaponCollection),
-            3 => Ok(Self::EnemiesToGold),
+            3 => Ok(Self::EnemiesToCoins),
             4 => Ok(Self::ScrambleBoard),
             _ => Err("Invalid value given to AbilityType::TryFrom<usize>"),
         }
@@ -38,7 +38,7 @@ impl AbilityType {
             Self::DoubleWeaponCollection => {
                 ("Sharpened Blades", "Doubles all weapon damage this turn")
             }
-            Self::EnemiesToGold => ("Touch of Midas", "Turns every non-boss enemy to gold"),
+            Self::EnemiesToCoins => ("Touch of Midas", "Turns every non-boss enemy to gold"),
             Self::ScrambleBoard => ("Gambler's Shuffle", "Randomizes the position of each tile"),
             Self::COUNT => unreachable!(""),
         }
@@ -49,7 +49,7 @@ impl AbilityType {
             Self::DoubleShieldCollection => 19,
             Self::DoubleCoinCollection => 17,
             Self::DoubleWeaponCollection => 15,
-            Self::EnemiesToGold => 23,
+            Self::EnemiesToCoins => 23,
             Self::ScrambleBoard => 14,
             Self::COUNT => unreachable!(""),
         }

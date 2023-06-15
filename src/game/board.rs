@@ -1,6 +1,6 @@
 use crate::game::being::Being;
 use crate::game::player::Player;
-use crate::game::randomizer::{Weight, WeightedRandomizer};
+use crate::game::randomizer::{Weight, WeightedRandomizer, WeightedRandomizerType};
 use crate::game::stat_modifiers::BaseDamageDecrease;
 use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 
@@ -309,6 +309,54 @@ impl Board {
                 self.tiles[num_falling - i - 1][x] = Tile::new(tile_type, tile_info);
             }
         }
+    }
+
+    // ability functions
+
+    pub fn replace_tiles(&mut self, from: TileType, to: TileType, enemy: &Being, boss: &Being) {
+        for col in self.tiles.iter_mut() {
+            for tile in col.iter_mut() {
+                if tile.tile_type == from {
+                    let tile_info = TileInfo::try_from((to, enemy, boss)).expect(TI_EXP_ERR_STR);
+                    *tile = Tile::new(to, tile_info);
+                }
+            }
+        }
+    }
+
+    pub fn scramble(&mut self) {
+        // oh boy here we go
+        let mut randomizer = WeightedRandomizer::new(WeightedRandomizerType::MetaSubAllOnObtain);
+        let h = self.tiles.len();
+        if h == 0 || self.tiles[0].len() == 0 {
+            return;
+        }
+        let w = self.tiles[0].len();
+        // convention: for given val, w, h; y = val % h and x = val / w
+        for val in 0..(w * h) {
+            randomizer.set_weight(val, 1);
+        }
+        let first_idx_2d = randomizer.weighted_random().expect("");
+        let first_pos = TilePosition::new((first_idx_2d % h) as isize, (first_idx_2d / w) as isize);
+        let first = self.tiles[first_pos.y as usize][first_pos.x as usize];
+        let mut target_pos = first_pos;
+        for _ in 0..(w * h) {
+            let value_opt = randomizer.weighted_random();
+            match value_opt {
+                Some(value) => {
+                    let rand_tile_pos =
+                        TilePosition::new((value % h) as isize, (value / w) as isize);
+                    self.tiles[target_pos.y as usize][target_pos.x as usize] =
+                        self.tiles[rand_tile_pos.y as usize][rand_tile_pos.x as usize];
+                    target_pos = rand_tile_pos;
+                }
+                None => {
+                    self.tiles[target_pos.y as usize][target_pos.x as usize] = first;
+                    return;
+                }
+            };
+        }
+        unreachable!("while scrambling the board, the for loop ran too many iterations based on the logic set in place");
     }
 }
 

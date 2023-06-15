@@ -148,6 +148,7 @@ impl Game {
         }
 
         self.step_improvement_queue();
+
         if slash {
             // cooldowns down by 1
             for ability_opt in self.player.abilities.iter_mut() {
@@ -217,8 +218,17 @@ impl Game {
                     AbilityType::DoubleWeaponCollection => {
                         self.collection_multipliers.weapon_collection_multiplier *= 2
                     }
-                    AbilityType::EnemiesToGold => { /*TODO*/ }
-                    AbilityType::ScrambleBoard => { /*TODO*/ }
+                    AbilityType::EnemiesToCoins => {
+                        self.board.replace_tiles(
+                            TileType::Enemy,
+                            TileType::Coin,
+                            &self.enemy,
+                            &self.boss,
+                        );
+                    }
+                    AbilityType::ScrambleBoard => {
+                        self.board.scramble();
+                    }
                     AbilityType::COUNT => unreachable!(""),
                 };
                 a.put_on_cooldown();

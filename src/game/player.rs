@@ -60,9 +60,9 @@ impl Player {
         self.being.output_damage(num_enemies, num_weapons)
     }
 
-    pub fn add_hit_points(&mut self, heart_potions_collected: usize) -> usize {
+    pub fn add_hit_points(&mut self, potions_collected: usize) -> usize {
         self.being
-            .add_hit_points(heart_potions_collected * self.stat_modifiers.hit_points_per_potion)
+            .add_hit_points(potions_collected * self.stat_modifiers.hit_points_per_potion)
     }
 
     pub fn add_coins(&mut self, coin_tiles_collected: usize) -> NumPurchases {

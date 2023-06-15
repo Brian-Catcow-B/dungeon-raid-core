@@ -115,7 +115,7 @@ impl From<Wind8> for TilePosition {
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum TileType {
-    Heart,
+    Potion,
     Shield,
     Coin,
     Sword,
@@ -130,7 +130,7 @@ impl TryFrom<usize> for TileType {
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(Self::Heart),
+            0 => Ok(Self::Potion),
             1 => Ok(Self::Shield),
             2 => Ok(Self::Coin),
             3 => Ok(Self::Sword),
@@ -146,7 +146,7 @@ impl TryFrom<TileType> for Weight {
 
     fn try_from(value: TileType) -> Result<Self, Self::Error> {
         match value {
-            TileType::Heart => Ok(100),
+            TileType::Potion => Ok(100),
             TileType::Shield => Ok(100),
             TileType::Coin => Ok(100),
             TileType::Sword => Ok(80),
@@ -184,7 +184,9 @@ impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
 
     fn try_from(value: (TileType, &Being, &Being)) -> Result<Self, Self::Error> {
         match value.0 {
-            TileType::Heart | TileType::Shield | TileType::Coin | TileType::Sword => Ok(Self::None),
+            TileType::Potion | TileType::Shield | TileType::Coin | TileType::Sword => {
+                Ok(Self::None)
+            }
             TileType::Enemy => Ok(Self::Enemy(*value.1)),
             TileType::Boss => Ok(Self::Boss(*value.2)),
             _ => Err("invalid TileType given for TileInfo::TryFrom<(TileType, &Being, &Being)>"),

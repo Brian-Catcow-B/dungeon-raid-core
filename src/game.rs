@@ -106,10 +106,10 @@ impl Game {
             &self.player,
             self.collection_multipliers.weapon_collection_multiplier,
         );
-        let (mut hearts, mut shields, mut coins, mut experience_points) = (0, 0, 0, 0);
+        let (mut potions, mut shields, mut coins, mut experience_points) = (0, 0, 0, 0);
         for tile in vec.iter() {
             match tile.tile_type {
-                TileType::Heart => hearts += 1,
+                TileType::Potion => potions += 1,
                 TileType::Shield => {
                     shields += self.collection_multipliers.shield_collection_multiplier
                 }
@@ -123,8 +123,8 @@ impl Game {
             };
         }
         self.collection_multipliers = CollectionMultipliers::default();
-        if hearts > 0 {
-            self.player.add_hit_points(hearts);
+        if potions > 0 {
+            self.player.add_hit_points(potions);
         }
         // TODO: handle upgrade/purchase/lvl up
         if shields > 0 {

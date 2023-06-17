@@ -112,10 +112,10 @@ impl From<&CoinPurchase> for ImprovementChoiceDisplay {
             CoinPurchaseType::Defense => "defense by ",
             CoinPurchaseType::Attack => "attack by ",
         };
-        let inc_string: String;
+        let inc_string =
         match value.coin_purchase_info {
-            CoinPurchaseInfo::Defense(inc) => inc_string = format!("{}", inc),
-            CoinPurchaseInfo::Attack(inc) => inc_string = format!("{}", inc),
+            CoinPurchaseInfo::Defense(inc) => format!("{}", inc),
+            CoinPurchaseInfo::Attack(inc) => format!("{}", inc),
         };
         description += inc_string.as_str();
         Self { description }

@@ -5,7 +5,7 @@ use crate::game::stat_modifiers::BaseDamageDecrease;
 use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 
 use std::io::Write;
-const LOG_FILE: &'static str = "core_log.txt";
+const LOG_FILE: &str = "core_log.txt";
 fn clear_logs() {
     let mut file = std::fs::File::create(LOG_FILE).expect("failed to create file");
     write!(&mut file, "").expect("failed to write file");
@@ -27,10 +27,10 @@ pub struct Board {
 }
 
 const MIN_DESTRUCTION_SELECTION: usize = 3;
-const WR_EXP_ERR_STR: &'static str =
+const WR_EXP_ERR_STR: &str =
     "weighted_random should only return None if nothing has been added to the randomizer";
-const TT_EXP_ERR_STR: &'static str = "TileType::TryFrom<usize> shouldn't fail because the usize is from a WeightedRandomizer with only the TileType's added";
-const TI_EXP_ERR_STR: &'static str =
+const TT_EXP_ERR_STR: &str = "TileType::TryFrom<usize> shouldn't fail because the usize is from a WeightedRandomizer with only the TileType's added";
+const TI_EXP_ERR_STR: &str =
     "TileInfo::TryFrom<(TileType, &Being, &Being)> shouldn't fail in this situation";
 
 impl Board {
@@ -81,7 +81,7 @@ impl Board {
     }
 
     fn position_valid(&self, pos: TilePosition) -> bool {
-        self.tiles.len() > 0
+        !self.tiles.is_empty()
             && (pos.y as usize) < self.tiles.len()
             && (pos.x as usize) < self.tiles[0].len()
     }
@@ -107,14 +107,14 @@ impl Board {
         }
         match self.selection_start {
             Some(pos) => {
-                let start_tile_type;
-                if self.position_valid(pos) {
-                    start_tile_type = self.tiles[pos.y as usize][pos.x as usize].tile_type;
-                } else {
-                    unreachable!(
-                        "in select tile, the selection_start is Some(pos) where pos is invalid"
-                    );
-                }
+                let start_tile_type =  
+                    if self.position_valid(pos) {
+                        self.tiles[pos.y as usize][pos.x as usize].tile_type
+                    } else {
+                        unreachable!(
+                            "in select tile, the selection_start is Some(pos) where pos is invalid"
+                        )
+                    };
                 if !start_tile_type.connects_with(
                     self.tiles[position_to_select.y as usize][position_to_select.x as usize]
                         .tile_type,
@@ -153,7 +153,7 @@ impl Board {
             }
             None => {
                 self.selection_start = Some(position_to_select);
-                return true;
+               true
             }
         }
     }
@@ -177,7 +177,7 @@ impl Board {
                     }
                 }
             }
-            None => return false,
+            None => false,
         }
     }
 
@@ -281,7 +281,7 @@ impl Board {
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self, enemy: &Being, boss: &Being) {
         let h = self.tiles.len();
-        if h == 0 || self.tiles[0].len() == 0 {
+        if h == 0 || self.tiles[0].is_empty(){
             return;
         }
         let w = self.tiles[0].len();
@@ -328,7 +328,7 @@ impl Board {
         // oh boy here we go
         let mut randomizer = WeightedRandomizer::new(WeightedRandomizerType::MetaSubAllOnObtain);
         let h = self.tiles.len();
-        if h == 0 || self.tiles[0].len() == 0 {
+        if h == 0 || self.tiles[0].is_empty() {
             return;
         }
         let w = self.tiles[0].len();
@@ -430,4 +430,4 @@ mod tests {
             );
         }
     }
-}
+} 

@@ -1,5 +1,6 @@
 use crate::game::being::{Being, BeingType};
 use crate::game::randomizer::WeightedRandomizer;
+use crate::game::tile::TilePosition;
 use crate::game::Game;
 
 #[derive(Copy, Clone)]
@@ -123,7 +124,17 @@ impl Special {
         }
     }
 
-    pub fn end_of_turn(&mut self, game: &mut Game) {}
+    pub fn end_of_turn(&mut self, game: &mut Game, tile_position: TilePosition) {
+        match self.special_type {
+            SpecialType::Boss => {}
+            SpecialType::Unstable => game
+                .board
+                .swap_positions_random_if_none(Some(tile_position), None),
+            SpecialType::WeaponsMaster => {}
+            SpecialType::Undead => {}
+            SpecialType::COUNT => unreachable!(""),
+        }
+    }
 }
 
 impl SpecialGenerator {

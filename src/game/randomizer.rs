@@ -48,6 +48,26 @@ impl Default for WeightedRandomizer {
     }
 }
 
+pub fn evenly_distributed_random(max_value: usize) -> usize {
+    if max_value == usize::MAX {
+        return rand::random::<usize>();
+    }
+    let get_value_below = max_value + 1;
+    // if power of 2
+    if get_value_below & (get_value_below - 1) == 0 {
+        return rand::random::<usize>() % get_value_below;
+    } else {
+        let remainder = usize::MAX % get_value_below;
+        let threshold = usize::MAX - remainder;
+        loop {
+            let candidate = rand::random::<usize>();
+            if candidate < threshold {
+                return candidate % get_value_below;
+            }
+        }
+    }
+}
+
 impl WeightedRandomizer {
     pub fn new(weighted_randomizer_type: WeightedRandomizerType) -> Self {
         Self {
@@ -74,26 +94,6 @@ impl WeightedRandomizer {
         }
     }
 
-    fn evenly_distributed_random(max_value: usize) -> usize {
-        if max_value == usize::MAX {
-            return rand::random::<usize>();
-        }
-        let get_value_below = max_value + 1;
-        // if power of 2
-        if get_value_below & (get_value_below - 1) == 0 {
-            return rand::random::<usize>() % get_value_below;
-        } else {
-            let remainder = usize::MAX % get_value_below;
-            let threshold = usize::MAX - remainder;
-            loop {
-                let candidate = rand::random::<usize>();
-                if candidate < threshold {
-                    return candidate % get_value_below;
-                }
-            }
-        }
-    }
-
     fn meta_remove_idx(&mut self, idx: usize) {
         let old_true_weight = self.value_weight_vec[idx].true_weight();
         self.weight_update(old_true_weight, 0);
@@ -105,7 +105,7 @@ impl WeightedRandomizer {
         if self.total_weight == 0 {
             return None;
         }
-        let random_num = Self::evenly_distributed_random(self.total_weight - 1);
+        let random_num = evenly_distributed_random(self.total_weight - 1);
         let mut running_sum = 0;
         for idx in 0..self.value_weight_vec.len() {
             running_sum += self.value_weight_vec[idx].true_weight();

@@ -1,9 +1,11 @@
 use crate::game::being::Being;
 use crate::game::player::Player;
+use crate::game::randomizer;
 use crate::game::randomizer::{Weight, WeightedRandomizer, WeightedRandomizerType};
 use crate::game::special::SpecialGenerator;
 use crate::game::stat_modifiers::BaseDamageDecrease;
 use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
+use crate::game::Game;
 
 use std::io::Write;
 const _LOG_FILE: &str = "core_log.txt";
@@ -370,6 +372,73 @@ impl Board {
         );
         self.tile_randomizer
             .set_weight(TileType::Special as usize, special_weight);
+    }
+
+    // special end of turn
+
+    pub fn run_end_of_turn_on_specials(&mut self, game: &mut Game) {
+        if self.num_specials == 0 {
+            return;
+        }
+        let mut found_specials = 0;
+        for (x, col) in self.tiles.iter_mut().enumerate() {
+            for (y, tile) in col.iter_mut().enumerate() {
+                if let TileInfo::Special(ref mut special) = tile.tile_info {
+                    found_specials += 1;
+                    special.end_of_turn(game, TilePosition::new(y as isize, x as isize));
+                    if found_specials == self.num_specials {
+                        return;
+                    }
+                }
+            }
+        }
+        unreachable!("while finding all the specials and calling run_end_of_turn on each, not all of the specials were found according to self.num_specials");
+    }
+
+    pub fn swap_positions_random_if_none(
+        &mut self,
+        tp1_opt: Option<TilePosition>,
+        tp2_opt: Option<TilePosition>,
+    ) {
+        let h = self.tiles.len();
+        if h == 0 || self.tiles[0].is_empty() {
+            return;
+        }
+        let w = self.tiles[0].len();
+        let mut serialized_pos1 = match tp1_opt {
+            Some(tp1) => (tp1.y as usize) + (tp1.x as usize) * h,
+            None => randomizer::evenly_distributed_random(w * h),
+        };
+        let serialized_pos2 = match tp2_opt {
+            Some(tp2) => {
+                let val = (tp2.y as usize) + (tp2.x as usize) * h;
+                if val == serialized_pos1 && tp1_opt.is_none() {
+                    // pos1 was randomized to be the same as the set pos2, so re-randomize pos1
+                    let rand = randomizer::evenly_distributed_random(w * h - 1);
+                    serialized_pos1 = if rand < val { rand } else { rand + 1 };
+                }
+                val
+            }
+            None => {
+                let rand = randomizer::evenly_distributed_random(w * h - 1);
+                if rand < serialized_pos1 {
+                    rand
+                } else {
+                    rand + 1
+                }
+            }
+        };
+        let pos1 = TilePosition::new(
+            (serialized_pos1 % h) as isize,
+            (serialized_pos1 / w) as isize,
+        );
+        let pos2 = TilePosition::new(
+            (serialized_pos2 % h) as isize,
+            (serialized_pos2 / w) as isize,
+        );
+        let tmp = self.tiles[pos2.y as usize][pos2.x as usize];
+        self.tiles[pos2.y as usize][pos2.x as usize] = self.tiles[pos1.y as usize][pos1.x as usize];
+        self.tiles[pos1.y as usize][pos1.x as usize] = tmp;
     }
 
     // ability functions

@@ -129,14 +129,13 @@ impl Board {
         }
         match self.selection_start {
             Some(pos) => {
-                let start_tile_type =  
-                    if self.position_valid(pos) {
-                        self.tiles[pos.y as usize][pos.x as usize].tile_type
-                    } else {
-                        unreachable!(
-                            "in select tile, the selection_start is Some(pos) where pos is invalid"
-                        )
-                    };
+                let start_tile_type = if self.position_valid(pos) {
+                    self.tiles[pos.y as usize][pos.x as usize].tile_type
+                } else {
+                    unreachable!(
+                        "in select tile, the selection_start is Some(pos) where pos is invalid"
+                    )
+                };
                 if !start_tile_type.connects_with(
                     self.tiles[position_to_select.y as usize][position_to_select.x as usize]
                         .tile_type,
@@ -175,7 +174,7 @@ impl Board {
             }
             None => {
                 self.selection_start = Some(position_to_select);
-               true
+                true
             }
         }
     }
@@ -306,7 +305,7 @@ impl Board {
         special_generator: &mut SpecialGenerator,
     ) {
         let h = self.tiles.len();
-        if h == 0 || self.tiles[0].is_empty(){
+        if h == 0 || self.tiles[0].is_empty() {
             return;
         }
         let w = self.tiles[0].len();
@@ -495,4 +494,4 @@ mod tests {
             );
         }
     }
-} 
+}

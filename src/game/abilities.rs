@@ -1,5 +1,4 @@
 #[derive(Copy, Clone, PartialEq, Eq)]
-
 #[allow(clippy::upper_case_acronyms)]
 pub enum AbilityType {
     DoubleShieldCollection,

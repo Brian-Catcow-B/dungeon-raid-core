@@ -15,6 +15,9 @@ use being::{Being, BeingType};
 mod player;
 use player::{Player, PlayerIsDead};
 
+mod special;
+use special::SpecialGenerator;
+
 mod stat_modifiers;
 
 mod abilities;
@@ -31,10 +34,13 @@ use improvement_choices::{
 };
 
 pub struct Game {
+    turns_passed: usize,
+    most_recent_special_kill_turn: usize,
+    min_turns_between_specials: usize,
     board: Board,
     player: Player,
     enemy: Being,
-    boss: Being,
+    special_generator: SpecialGenerator,
     improvement_choice_set_generator: ImprovementChoiceSetGenerator,
     improvement_choice_set: Option<ImprovementChoiceSet>,
     improvement_queue: Vec<ImprovementType>,
@@ -46,15 +52,25 @@ pub const DEFAULT_BOARD_HEIGHT: usize = 6;
 
 pub const ABILITY_SLOTS: usize = 4;
 
+const INITIAL_MIN_TURNS_BETWEEN_SPECIALS: usize = 2;
+
 impl Default for Game {
     fn default() -> Game {
-        let enemy = Being::new(BeingType::Enemy);
-        let boss = Being::new(BeingType::Boss);
+        let enemy = Being::new(BeingType::Enemy, 1, 1);
+        let mut special_generator = SpecialGenerator::default();
         Game {
-            board: Board::new(DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT, &enemy, &boss),
+            turns_passed: 0,
+            most_recent_special_kill_turn: 0,
+            min_turns_between_specials: INITIAL_MIN_TURNS_BETWEEN_SPECIALS,
+            board: Board::new(
+                DEFAULT_BOARD_WIDTH,
+                DEFAULT_BOARD_HEIGHT,
+                &enemy,
+                &mut special_generator,
+            ),
             player: Player::default(),
             enemy,
-            boss,
+            special_generator,
             improvement_choice_set_generator: ImprovementChoiceSetGenerator::default(),
             improvement_choice_set: None,
             improvement_queue: vec![],
@@ -74,6 +90,10 @@ impl Game {
 
     pub fn incoming_damage(&self) -> usize {
         self.board.incoming_damage()
+    }
+
+    pub fn special(&self) -> Option<Tile> {
+        self.board.special()
     }
 
     pub fn apply_incoming_damage(&mut self) -> PlayerIsDead {
@@ -106,7 +126,8 @@ impl Game {
             &self.player,
             self.collection_multipliers.weapon_collection_multiplier,
         );
-        let (mut potions, mut shields, mut coins, mut experience_points) = (0, 0, 0, 0);
+        let (mut potions, mut shields, mut coins, mut experience_points, mut special_killed) =
+            (0, 0, 0, 0, false);
         for tile in vec.iter() {
             match tile.tile_type {
                 TileType::Potion => potions += 1,
@@ -116,40 +137,41 @@ impl Game {
                 TileType::Coin => coins += self.collection_multipliers.coin_collection_multiplier,
                 TileType::Sword => {}
                 TileType::Enemy => experience_points += 1,
-                TileType::Boss => experience_points += 20,
+                TileType::Special => {
+                    experience_points += 15;
+                    special_killed = true;
+                }
                 TileType::COUNT | TileType::None => {
                     unreachable!("drop_selection went over invalid TileType")
                 }
             };
         }
         self.collection_multipliers = CollectionMultipliers::default();
-        if potions > 0 {
-            self.player.add_hit_points(potions);
-        }
-        // TODO: handle upgrade/purchase/lvl up
-        if shields > 0 {
-            let num_upgrades = self.player.add_shields(shields);
-            for _ in 0..num_upgrades {
-                self.improvement_queue.push(ImprovementType::Shields);
-            }
-        }
-        if coins > 0 {
-            let num_purchases = self.player.add_coins(coins);
-            for _ in 0..num_purchases {
-                self.improvement_queue.push(ImprovementType::Coins);
-            }
-        }
-        if experience_points > 0 {
-            let num_level_ups = self.player.add_experience_points(experience_points);
-            for _ in 0..num_level_ups {
-                self.improvement_queue
-                    .push(ImprovementType::ExperiencePoints);
-            }
-        }
-
-        self.step_improvement_queue();
 
         if slash {
+            // collection
+            if potions > 0 {
+                self.player.add_hit_points(potions);
+            }
+            if shields > 0 {
+                let num_upgrades = self.player.add_shields(shields);
+                for _ in 0..num_upgrades {
+                    self.improvement_queue.push(ImprovementType::Shields);
+                }
+            }
+            if coins > 0 {
+                let num_purchases = self.player.add_coins(coins);
+                for _ in 0..num_purchases {
+                    self.improvement_queue.push(ImprovementType::Coins);
+                }
+            }
+            if experience_points > 0 {
+                let num_level_ups = self.player.add_experience_points(experience_points);
+                for _ in 0..num_level_ups {
+                    self.improvement_queue
+                        .push(ImprovementType::ExperiencePoints);
+                }
+            }
             // cooldowns down by 1
             for ability_opt in self.player.abilities.iter_mut() {
                 match ability_opt {
@@ -161,7 +183,30 @@ impl Game {
                     None => {}
                 };
             }
+            // number of turns passed up by 1
+            self.turns_passed += 1;
+            // update min_turns_between_specials
+            let mtbs_modifier = self.turns_passed / 25;
+            self.min_turns_between_specials = if INITIAL_MIN_TURNS_BETWEEN_SPECIALS > mtbs_modifier
+            {
+                INITIAL_MIN_TURNS_BETWEEN_SPECIALS - mtbs_modifier
+            } else {
+                0
+            };
+            // update most_recent_special_kill_turn
+            if special_killed {
+                self.most_recent_special_kill_turn = self.turns_passed;
+            }
+            // handle special spawn stuff
+            if self.turns_passed - self.most_recent_special_kill_turn
+                >= self.min_turns_between_specials
+            {
+                self.board
+                    .activate_special_spawns(self.turns_passed, self.most_recent_special_kill_turn);
+            }
         }
+
+        self.step_improvement_queue();
 
         slash
     }
@@ -223,7 +268,7 @@ impl Game {
                             TileType::Enemy,
                             TileType::Coin,
                             &self.enemy,
-                            &self.boss,
+                            &mut self.special_generator,
                         );
                     }
                     AbilityType::ScrambleBoard => {
@@ -240,7 +285,7 @@ impl Game {
 
     pub fn apply_gravity_and_randomize_new_tiles(&mut self) {
         self.board
-            .apply_gravity_and_randomize_new_tiles(&self.enemy, &self.boss);
+            .apply_gravity_and_randomize_new_tiles(&self.enemy, &mut self.special_generator);
     }
 
     pub fn get_tile(&self, tile_position: TilePosition) -> Option<Tile> {

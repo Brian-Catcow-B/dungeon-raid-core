@@ -1,20 +1,21 @@
 use crate::game::being::Being;
 use crate::game::player::Player;
 use crate::game::randomizer::{Weight, WeightedRandomizer, WeightedRandomizerType};
+use crate::game::special::SpecialGenerator;
 use crate::game::stat_modifiers::BaseDamageDecrease;
 use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
 
 use std::io::Write;
-const LOG_FILE: &'static str = "core_log.txt";
-fn clear_logs() {
-    let mut file = std::fs::File::create(LOG_FILE).expect("failed to create file");
+const _LOG_FILE: &'static str = "core_log.txt";
+fn _clear_logs() {
+    let mut file = std::fs::File::create(_LOG_FILE).expect("failed to create file");
     write!(&mut file, "").expect("failed to write file");
 }
-fn log(msg: &String) {
+fn _log(msg: &String) {
     let mut file = std::fs::File::options()
         .append(true)
         .create(true)
-        .open(LOG_FILE)
+        .open(_LOG_FILE)
         .expect("failed to create file");
     writeln!(&mut file, "{}", msg).expect("failed to write file");
 }
@@ -23,6 +24,7 @@ pub struct Board {
     // access by [y][x] where [0][0] is top left corner
     tiles: Vec<Vec<Tile>>,
     tile_randomizer: WeightedRandomizer,
+    special_exists: bool,
     pub selection_start: Option<TilePosition>,
 }
 
@@ -34,8 +36,13 @@ const TI_EXP_ERR_STR: &'static str =
     "TileInfo::TryFrom<(TileType, &Being, &Being)> shouldn't fail in this situation";
 
 impl Board {
-    pub fn new(w: usize, h: usize, enemy: &Being, boss: &Being) -> Board {
-        clear_logs();
+    pub fn new(
+        w: usize,
+        h: usize,
+        enemy: &Being,
+        special_generator: &mut SpecialGenerator,
+    ) -> Board {
+        _clear_logs();
 
         // tile randomizer
 
@@ -53,6 +60,7 @@ impl Board {
         let mut b = Self {
             tiles: vec![],
             tile_randomizer,
+            special_exists: false,
             selection_start: None,
         };
 
@@ -65,7 +73,7 @@ impl Board {
                 b.tiles[new_idx].push(Tile::default());
             }
         }
-        b.apply_gravity_and_randomize_new_tiles(enemy, boss);
+        b.apply_gravity_and_randomize_new_tiles(enemy, special_generator);
 
         b
     }
@@ -78,6 +86,20 @@ impl Board {
             }
         }
         dmg
+    }
+
+    pub fn special(&self) -> Option<Tile> {
+        if !self.special_exists {
+            return None;
+        }
+        for col in self.tiles.iter() {
+            for tile in col.iter() {
+                if tile.tile_type == TileType::Special {
+                    return Some(*tile);
+                }
+            }
+        }
+        unreachable!("self.special_exists seems to indicate that the special does indeed exist, but it was not found");
     }
 
     fn position_valid(&self, pos: TilePosition) -> bool {
@@ -197,7 +219,7 @@ impl Board {
                 loop {
                     match self.tiles[p.y as usize][p.x as usize].tile_type {
                         TileType::Sword => num_weapons += 1,
-                        TileType::Enemy | TileType::Boss => num_beings += 1,
+                        TileType::Enemy | TileType::Special => num_beings += 1,
                         _ => {}
                     };
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
@@ -227,10 +249,6 @@ impl Board {
         } else {
             (0, 0)
         };
-        log(&format!(
-            "drop_selection called; (slash {}, weapons {}, beings {})",
-            slash, num_weapons, num_beings
-        ));
         let mut destructing_tiles: Vec<Tile> = vec![];
         match self.selection_start {
             Some(pos) => {
@@ -245,6 +263,9 @@ impl Board {
                             .slash(player.output_damage(num_beings, num_weapons))
                     {
                         destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
+                        if self.tiles[p.y as usize][p.x as usize].tile_type == TileType::Special {
+                            self.special_exists = false;
+                        }
                         self.tiles[p.y as usize][p.x as usize] = Tile::default();
                     }
                     self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
@@ -271,15 +292,19 @@ impl Board {
         for col in self.tiles.iter_mut() {
             for tile in col.iter_mut() {
                 match tile.tile_info {
-                    TileInfo::Enemy(ref mut e) => e.blunt(blunting),
-                    TileInfo::Boss(ref mut b) => b.blunt(blunting),
+                    TileInfo::Enemy(ref mut b) => b.blunt(blunting),
+                    TileInfo::Special(ref mut s) => s.blunt(blunting),
                     _ => {}
                 }
             }
         }
     }
 
-    pub fn apply_gravity_and_randomize_new_tiles(&mut self, enemy: &Being, boss: &Being) {
+    pub fn apply_gravity_and_randomize_new_tiles(
+        &mut self,
+        enemy: &Being,
+        special_generator: &mut SpecialGenerator,
+    ) {
         let h = self.tiles.len();
         if h == 0 || self.tiles[0].len() == 0 {
             return;
@@ -299,25 +324,61 @@ impl Board {
                 };
             }
             for i in 0..num_falling {
+                let y = num_falling - i - 1;
                 let tile_type = TileType::try_from(
                     self.tile_randomizer
                         .weighted_random()
                         .expect(WR_EXP_ERR_STR),
                 )
                 .expect(TT_EXP_ERR_STR);
-                let tile_info = TileInfo::try_from((tile_type, enemy, boss)).expect(TI_EXP_ERR_STR);
-                self.tiles[num_falling - i - 1][x] = Tile::new(tile_type, tile_info);
+                // if we got TileType::Special, set the weight to zero, which then gets handled
+                // later by Self::activate_special_spawns
+                if tile_type == TileType::Special {
+                    self.tile_randomizer
+                        .set_weight(TileType::Special as usize, 0);
+                    self.special_exists = true;
+                }
+                let tile_info = TileInfo::try_from((tile_type, enemy, &mut *special_generator))
+                    .expect(TI_EXP_ERR_STR);
+                self.tiles[y][x] = Tile::new(tile_type, tile_info);
             }
         }
     }
 
+    // overall_turns_passed is expected to be >= most_recent_special_kill_turn
+    pub fn activate_special_spawns(
+        &mut self,
+        overall_turns_passed: usize,
+        most_recent_special_kill_turn: usize,
+    ) {
+        // The idea is that we scale the special's weight with the number of turns that have passed
+        // along with the the number of turns that have passed since the most recent special kill.
+        // Also, if a special enemy already exists, we drop the weight considerably
+        let enemy_weight = Weight::try_from(TileType::Enemy).expect("");
+        let special_div_set = if self.special_exists { (5, 6) } else { (2, 3) };
+        let special_weight = std::cmp::min(
+            (overall_turns_passed / special_div_set.0)
+                - (most_recent_special_kill_turn / special_div_set.1),
+            enemy_weight,
+        );
+        self.tile_randomizer
+            .set_weight(TileType::Special as usize, special_weight);
+    }
+
     // ability functions
 
-    pub fn replace_tiles(&mut self, from: TileType, to: TileType, enemy: &Being, boss: &Being) {
+    pub fn replace_tiles(
+        &mut self,
+        from: TileType,
+        to: TileType,
+        enemy: &Being,
+        special_generator: &mut SpecialGenerator,
+    ) {
         for col in self.tiles.iter_mut() {
             for tile in col.iter_mut() {
                 if tile.tile_type == from {
-                    let tile_info = TileInfo::try_from((to, enemy, boss)).expect(TI_EXP_ERR_STR);
+                    let tile_info = TileInfo::try_from((to, enemy, &mut *special_generator))
+                        .expect(TI_EXP_ERR_STR);
                     *tile = Tile::new(to, tile_info);
                 }
             }
@@ -326,6 +387,7 @@ impl Board {
 
     pub fn scramble(&mut self) {
         // oh boy here we go
+        self.selection_start = None;
         let mut randomizer = WeightedRandomizer::new(WeightedRandomizerType::MetaSubAllOnObtain);
         let h = self.tiles.len();
         if h == 0 || self.tiles[0].len() == 0 {
@@ -338,7 +400,8 @@ impl Board {
         }
         let first_idx_2d = randomizer.weighted_random().expect("");
         let first_pos = TilePosition::new((first_idx_2d % h) as isize, (first_idx_2d / w) as isize);
-        let first = self.tiles[first_pos.y as usize][first_pos.x as usize];
+        let mut first = self.tiles[first_pos.y as usize][first_pos.x as usize];
+        first.next_selection = Wind8::None;
         let mut target_pos = first_pos;
         for _ in 0..(w * h) {
             let value_opt = randomizer.weighted_random();
@@ -348,6 +411,8 @@ impl Board {
                         TilePosition::new((value % h) as isize, (value / w) as isize);
                     self.tiles[target_pos.y as usize][target_pos.x as usize] =
                         self.tiles[rand_tile_pos.y as usize][rand_tile_pos.x as usize];
+                    self.tiles[target_pos.y as usize][target_pos.x as usize].next_selection =
+                        Wind8::None;
                     target_pos = rand_tile_pos;
                 }
                 None => {
@@ -403,7 +468,7 @@ mod tests {
     #[test]
     fn test_incoming_damage() {
         let enemy = Being::new(BeingType::Enemy);
-        let boss = Being::new(BeingType::Boss);
+        let boss = Being::new(BeingType::Special);
         let mut b = testhelp_custom_random_board(
             DEFAULT_BOARD_WIDTH,
             DEFAULT_BOARD_HEIGHT,

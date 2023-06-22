@@ -6,6 +6,7 @@ pub type PercentGoldPerCoinIncrease = usize;
 pub type HitPointsPerPotionIncrease = usize;
 pub type PercentUpgradePointsPerShieldIncrease = usize;
 pub type PercentXPPerExperiencePointIncrease = usize;
+pub type ArmorPerShield = usize;
 
 pub struct PlayerStatModifiers {
     //pub defense_increase: DefenseIncrease,
@@ -16,6 +17,7 @@ pub struct PlayerStatModifiers {
     pub hit_points_per_potion: HitPointsPerPotionIncrease,
     pub percent_upgrade_points_per_shield: PercentUpgradePointsPerShieldIncrease,
     pub percent_xp_per_experience_point: PercentXPPerExperiencePointIncrease,
+    pub armor_per_shield: ArmorPerShield,
 }
 
 impl Default for PlayerStatModifiers {
@@ -26,6 +28,7 @@ impl Default for PlayerStatModifiers {
             hit_points_per_potion: 1,
             percent_upgrade_points_per_shield: 100,
             percent_xp_per_experience_point: 100,
+            armor_per_shield: 1,
         }
     }
 }

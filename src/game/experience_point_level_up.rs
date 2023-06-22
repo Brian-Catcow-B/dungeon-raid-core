@@ -29,6 +29,7 @@ pub enum ExperiencePointLevelUpInfo {
 pub enum StatLevelUpType {
     MaxHitPoints,
     BaseOutputDamage,
+    ArmorPerShield,
     COUNT,
 }
 
@@ -39,6 +40,7 @@ impl TryFrom<usize> for StatLevelUpType {
         match value {
             0 => Ok(Self::MaxHitPoints),
             1 => Ok(Self::BaseOutputDamage),
+            2 => Ok(Self::ArmorPerShield),
             _ => Err("invalid value given to StatLevelUpType::TryFrom<usize>"),
         }
     }
@@ -49,6 +51,7 @@ pub enum StatLevelUpInfo {
     // TODO: type this stuff
     MaxHitPoints(usize),
     BaseOutputDamage(usize),
+    ArmorPerShield(usize),
 }
 
 impl From<StatLevelUpType> for StatLevelUpInfo {
@@ -56,6 +59,7 @@ impl From<StatLevelUpType> for StatLevelUpInfo {
         match value {
             StatLevelUpType::MaxHitPoints => Self::MaxHitPoints(10),
             StatLevelUpType::BaseOutputDamage => Self::BaseOutputDamage(1),
+            StatLevelUpType::ArmorPerShield => Self::ArmorPerShield(1),
             StatLevelUpType::COUNT => unreachable!(""),
         }
     }
@@ -70,6 +74,10 @@ impl StatLevelUpInfo {
             Self::BaseOutputDamage(bod_inc) => {
                 ("Damage", format!("Increase base damage by {}", bod_inc))
             }
+            Self::ArmorPerShield(aps_inc) => (
+                "Armor Proficiency",
+                format!("Increase armor per collected shield by {}", aps_inc),
+            ),
         }
     }
 }

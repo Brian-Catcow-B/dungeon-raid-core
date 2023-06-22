@@ -1,10 +1,10 @@
-use crate::game::stat_modifiers::BaseDamageDecrease;
+use crate::game::stat_modifiers::{ArmorPerShield, BaseDamageDecrease};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum BeingType {
     Player,
     Enemy,
-    Boss,
+    Special,
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -35,34 +35,35 @@ const MIN_BASE_DAMAGE: usize = 1;
 
 pub type BeingIsDead = bool;
 impl Being {
-    pub fn new(being_type: BeingType) -> Self {
+    pub fn new(being_type: BeingType, scale_numerator: usize, scale_denominator: usize) -> Self {
         match being_type {
             BeingType::Player => Self {
                 being_type,
-                base_output_damage: PLAYER_START_BASE_DMG,
-                weapon_output_damage: PLAYER_START_WEAPON_DMG,
-                hit_points: PLAYER_START_HP,
-                max_hit_points: PLAYER_START_HP,
-                shields: PLAYER_START_SH,
-                max_shields: PLAYER_START_SH,
+                base_output_damage: (PLAYER_START_BASE_DMG * scale_numerator) / scale_denominator,
+                weapon_output_damage: (PLAYER_START_WEAPON_DMG * scale_numerator)
+                    / scale_denominator,
+                hit_points: (PLAYER_START_HP * scale_numerator) / scale_denominator,
+                max_hit_points: (PLAYER_START_HP * scale_numerator) / scale_denominator,
+                shields: (PLAYER_START_SH * scale_numerator) / scale_denominator,
+                max_shields: (PLAYER_START_SH * scale_numerator) / scale_denominator,
             },
             BeingType::Enemy => Self {
                 being_type,
-                base_output_damage: ENEMY_START_DMG,
+                base_output_damage: (ENEMY_START_DMG * scale_numerator) / scale_denominator,
                 weapon_output_damage: 0,
-                hit_points: ENEMY_START_HP,
-                max_hit_points: ENEMY_START_HP,
-                shields: ENEMY_START_SH,
-                max_shields: ENEMY_START_SH,
+                hit_points: (ENEMY_START_HP * scale_numerator) / scale_denominator,
+                max_hit_points: (ENEMY_START_HP * scale_numerator) / scale_denominator,
+                shields: (ENEMY_START_SH * scale_numerator) / scale_denominator,
+                max_shields: (ENEMY_START_SH * scale_numerator) / scale_denominator,
             },
-            BeingType::Boss => Self {
+            BeingType::Special => Self {
                 being_type,
-                base_output_damage: BOSS_START_DMG,
+                base_output_damage: (BOSS_START_DMG * scale_numerator) / scale_denominator,
                 weapon_output_damage: 3,
-                hit_points: BOSS_START_HP,
-                max_hit_points: BOSS_START_HP,
-                shields: BOSS_START_SH,
-                max_shields: BOSS_START_SH,
+                hit_points: (BOSS_START_HP * scale_numerator) / scale_denominator,
+                max_hit_points: (BOSS_START_HP * scale_numerator) / scale_denominator,
+                shields: (BOSS_START_SH * scale_numerator) / scale_denominator,
+                max_shields: (BOSS_START_SH * scale_numerator) / scale_denominator,
             },
         }
     }
@@ -102,15 +103,21 @@ impl Being {
         }
     }
 
-    pub fn add_shields(&mut self, mut shields_to_add: usize) -> usize {
-        let missing_sh = self.max_shields - self.shields;
-        if shields_to_add <= missing_sh {
-            self.shields += shields_to_add;
-            return 0;
+    // returns excess shields_to_add
+    pub fn add_shields(
+        &mut self,
+        shields_to_add: usize,
+        armor_per_shield: ArmorPerShield,
+    ) -> usize {
+        let missing_armor = self.max_shields - self.shields;
+        let projected_armor_increase = shields_to_add * armor_per_shield;
+        if projected_armor_increase <= missing_armor {
+            self.shields += projected_armor_increase;
+            0
         } else {
-            shields_to_add -= missing_sh;
+            let excess_armor_increase = projected_armor_increase - missing_armor;
             self.shields = self.max_shields;
-            return shields_to_add;
+            excess_armor_increase / armor_per_shield
         }
     }
 

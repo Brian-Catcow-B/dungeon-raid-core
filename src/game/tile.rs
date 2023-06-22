@@ -1,5 +1,6 @@
 use crate::game::being::Being;
 use crate::game::randomizer::Weight;
+use crate::game::special::{Special, SpecialGenerator};
 use std::ops::Add;
 use std::ops::Sub;
 
@@ -120,7 +121,7 @@ pub enum TileType {
     Coin,
     Sword,
     Enemy,
-    Boss,
+    Special,
     COUNT,
     None,
 }
@@ -135,7 +136,7 @@ impl TryFrom<usize> for TileType {
             2 => Ok(Self::Coin),
             3 => Ok(Self::Sword),
             4 => Ok(Self::Enemy),
-            5 => Ok(Self::Boss),
+            5 => Ok(Self::Special),
             _ => Err("Invalid value for converting usize->TileType"),
         }
     }
@@ -151,7 +152,7 @@ impl TryFrom<TileType> for Weight {
             TileType::Coin => Ok(100),
             TileType::Sword => Ok(80),
             TileType::Enemy => Ok(60),
-            TileType::Boss => Ok(0),
+            TileType::Special => Ok(0),
             _ => Err("Invalid value for converting TileType->Weight"),
         }
     }
@@ -163,8 +164,8 @@ impl TileType {
             return true;
         }
         match self {
-            Self::Sword | Self::Enemy | Self::Boss => match other {
-                Self::Sword | Self::Enemy | Self::Boss => true,
+            Self::Sword | Self::Enemy | Self::Special => match other {
+                Self::Sword | Self::Enemy | Self::Special => true,
                 _ => false,
             },
             _ => false,
@@ -172,33 +173,33 @@ impl TileType {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone)]
 pub enum TileInfo {
     Enemy(Being),
-    Boss(Being),
+    Special(Special),
     None,
 }
 
-impl TryFrom<(TileType, &Being, &Being)> for TileInfo {
+impl TryFrom<(TileType, &Being, &mut SpecialGenerator)> for TileInfo {
     type Error = &'static str;
 
-    fn try_from(value: (TileType, &Being, &Being)) -> Result<Self, Self::Error> {
+    fn try_from(value: (TileType, &Being, &mut SpecialGenerator)) -> Result<Self, Self::Error> {
         match value.0 {
             TileType::Potion | TileType::Shield | TileType::Coin | TileType::Sword => {
                 Ok(Self::None)
             }
             TileType::Enemy => Ok(Self::Enemy(*value.1)),
-            TileType::Boss => Ok(Self::Boss(*value.2)),
-            _ => Err("invalid TileType given for TileInfo::TryFrom<(TileType, &Being, &Being)>"),
+            TileType::Special => Ok(Self::Special(value.2.get())),
+            _ => Err("invalid TileType given for TileInfo::TryFrom<(TileType, &Being, &SpecialGenerator)>"),
         }
     }
 }
 
 impl TileInfo {
-    pub fn output_damage(self) -> usize {
+    pub fn output_damage(&self) -> usize {
         match self {
-            Self::Enemy(b) => b.output_damage(1, 0),
-            Self::Boss(b) => b.output_damage(1, 0),
+            Self::Enemy(ref b) => b.output_damage(1, 0),
+            Self::Special(ref s) => s.output_damage(1, 0),
             _ => 0,
         }
     }
@@ -234,7 +235,7 @@ impl Tile {
     pub fn slash(&mut self, damage: usize) -> Destroyed {
         match self.tile_info {
             TileInfo::Enemy(ref mut being) => being.take_damage(damage),
-            TileInfo::Boss(ref mut being) => being.take_damage(damage),
+            TileInfo::Special(ref mut special) => special.take_damage(damage),
             _ => true,
         }
     }

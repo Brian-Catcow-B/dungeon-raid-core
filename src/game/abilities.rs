@@ -69,7 +69,7 @@ impl Ability {
             ability_type,
             cooldown: ability_type.base_cooldown(),
             running_cooldown: 0,
-            current_level: 9,
+            current_level: 1,
         }
     }
 

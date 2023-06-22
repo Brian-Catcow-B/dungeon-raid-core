@@ -28,7 +28,7 @@ impl Default for Player {
             abilities.push(None);
         }
         Self {
-            being: Being::new(BeingType::Player),
+            being: Being::new(BeingType::Player, 1, 1),
             coin_cents: 0,
             excess_shield_cents: 0,
             experience_point_cents: 0,
@@ -82,7 +82,9 @@ impl Player {
     }
 
     pub fn add_shields(&mut self, shield_tiles_collected: usize) -> NumUpgrades {
-        let excess = self.being.add_shields(shield_tiles_collected);
+        let excess = self
+            .being
+            .add_shields(shield_tiles_collected, self.stat_modifiers.armor_per_shield);
         self.add_excess_shields(excess)
     }
 
@@ -103,7 +105,7 @@ impl Player {
         match upgrade.shield_upgrade_info {
             ShieldUpgradeInfo::Defense(def_inc) => {
                 self.being.max_shields += def_inc;
-                self.add_shields(def_inc);
+                self.being.shields += def_inc;
             }
             ShieldUpgradeInfo::BaseDamage(base_dmg_inc) => {
                 self.being.base_output_damage += base_dmg_inc;
@@ -127,7 +129,7 @@ impl Player {
         match purchase.coin_purchase_info {
             CoinPurchaseInfo::Defense(def_inc) => {
                 self.being.max_shields += def_inc;
-                self.add_shields(def_inc);
+                self.being.shields += def_inc;
             }
             CoinPurchaseInfo::Attack(weap_dmg_inc) => {
                 self.being.weapon_output_damage += weap_dmg_inc;
@@ -165,6 +167,9 @@ impl Player {
                     }
                     StatLevelUpInfo::BaseOutputDamage(bod_inc) => {
                         self.being.base_output_damage += bod_inc;
+                    }
+                    StatLevelUpInfo::ArmorPerShield(aps_inc) => {
+                        self.stat_modifiers.armor_per_shield += aps_inc;
                     }
                 };
                 0

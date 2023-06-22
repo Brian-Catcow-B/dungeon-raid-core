@@ -92,8 +92,8 @@ impl Game {
         self.board.incoming_damage()
     }
 
-    pub fn special(&self) -> Option<Tile> {
-        self.board.special()
+    pub fn specials(&self) -> Vec<(TilePosition, Tile)> {
+        self.board.specials()
     }
 
     pub fn apply_incoming_damage(&mut self) -> PlayerIsDead {
@@ -204,6 +204,7 @@ impl Game {
                 self.board
                     .activate_special_spawns(self.turns_passed, self.most_recent_special_kill_turn);
             }
+            //
         }
 
         self.step_improvement_queue();

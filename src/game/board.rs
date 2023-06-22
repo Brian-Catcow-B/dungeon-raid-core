@@ -24,7 +24,7 @@ pub struct Board {
     // access by [y][x] where [0][0] is top left corner
     tiles: Vec<Vec<Tile>>,
     tile_randomizer: WeightedRandomizer,
-    special_exists: bool,
+    num_specials: usize,
     pub selection_start: Option<TilePosition>,
 }
 
@@ -60,7 +60,7 @@ impl Board {
         let mut b = Self {
             tiles: vec![],
             tile_randomizer,
-            special_exists: false,
+            num_specials: 0,
             selection_start: None,
         };
 
@@ -88,18 +88,22 @@ impl Board {
         dmg
     }
 
-    pub fn special(&self) -> Option<Tile> {
-        if !self.special_exists {
-            return None;
+    pub fn specials(&self) -> Vec<(TilePosition, Tile)> {
+        if self.num_specials == 0 {
+            return vec![];
         }
-        for col in self.tiles.iter() {
-            for tile in col.iter() {
+        let mut specials_vec = Vec::with_capacity(self.num_specials);
+        for (x, col) in self.tiles.iter().enumerate() {
+            for (y, tile) in col.iter().enumerate() {
                 if tile.tile_type == TileType::Special {
-                    return Some(*tile);
+                    specials_vec.push((TilePosition::new(y as isize, x as isize), *tile));
+                    if specials_vec.len() == self.num_specials {
+                        return specials_vec;
+                    }
                 }
             }
         }
-        unreachable!("self.special_exists seems to indicate that the special does indeed exist, but it was not found");
+        unreachable!("self.num_specials and the number of specials found in the tiles differ");
     }
 
     fn position_valid(&self, pos: TilePosition) -> bool {
@@ -263,7 +267,7 @@ impl Board {
                     {
                         destructing_tiles.push(self.tiles[p.y as usize][p.x as usize]);
                         if self.tiles[p.y as usize][p.x as usize].tile_type == TileType::Special {
-                            self.special_exists = false;
+                            self.num_specials -= 1;
                         }
                         self.tiles[p.y as usize][p.x as usize] = Tile::default();
                     }
@@ -335,7 +339,7 @@ impl Board {
                 if tile_type == TileType::Special {
                     self.tile_randomizer
                         .set_weight(TileType::Special as usize, 0);
-                    self.special_exists = true;
+                    self.num_specials += 1;
                 }
                 let tile_info = TileInfo::try_from((tile_type, enemy, &mut *special_generator))
                     .expect(TI_EXP_ERR_STR);
@@ -354,7 +358,11 @@ impl Board {
         // along with the the number of turns that have passed since the most recent special kill.
         // Also, if a special enemy already exists, we drop the weight considerably
         let enemy_weight = Weight::try_from(TileType::Enemy).expect("");
-        let special_div_set = if self.special_exists { (5, 6) } else { (2, 3) };
+        let special_div_set = if self.num_specials > 0 {
+            (5, 6)
+        } else {
+            (2, 3)
+        };
         let special_weight = std::cmp::min(
             (overall_turns_passed / special_div_set.0)
                 - (most_recent_special_kill_turn / special_div_set.1),

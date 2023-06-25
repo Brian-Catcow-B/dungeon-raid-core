@@ -3,6 +3,8 @@ use crate::game::randomizer::WeightedRandomizer;
 use crate::game::tile::TilePosition;
 use crate::game::Game;
 
+pub type SpecialIdentifier = usize;
+
 #[derive(Copy, Clone)]
 pub enum SpecialType {
     Boss,
@@ -76,6 +78,7 @@ impl SpecialType {
 }
 
 pub struct SpecialGenerator {
+    unused_id: SpecialIdentifier,
     type_randomizer: WeightedRandomizer,
 }
 
@@ -85,12 +88,16 @@ impl Default for SpecialGenerator {
         for st in 0..(SpecialType::COUNT as usize) {
             type_randomizer.set_weight(st, 1);
         }
-        Self { type_randomizer }
+        Self { 
+            unused_id: 0,
+            type_randomizer,
+        }
     }
 }
 
 #[derive(Copy, Clone)]
 pub struct Special {
+    pub id: SpecialIdentifier,
     pub special_type: SpecialType,
     pub special_info: SpecialInfo,
     pub being: Being,
@@ -141,7 +148,10 @@ impl SpecialGenerator {
     pub fn get(&mut self) -> Special {
         let special_type =
             SpecialType::try_from(self.type_randomizer.weighted_random().expect("")).expect("");
+        let id = self.unused_id;
+        self.unused_id += 1;
         Special {
+            id,
             special_type,
             special_info: SpecialInfo::from(special_type),
             being: Being::from(special_type),

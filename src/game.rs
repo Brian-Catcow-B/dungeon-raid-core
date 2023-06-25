@@ -16,7 +16,7 @@ mod player;
 use player::{Player, PlayerIsDead};
 
 mod special;
-use special::SpecialGenerator;
+use special::{SpecialGenerator, SpecialIdentifier};
 
 mod stat_modifiers;
 
@@ -92,8 +92,8 @@ impl Game {
         self.board.incoming_damage()
     }
 
-    pub fn specials(&self) -> Vec<(TilePosition, Tile)> {
-        self.board.specials()
+    pub fn specials(&self) -> Vec<(TilePosition, Tile, usize)> {
+        self.board.specials(&vec![])
     }
 
     pub fn apply_incoming_damage(&mut self) -> PlayerIsDead {
@@ -119,6 +119,10 @@ impl Game {
             }
             None => self.improvement_choice_set = None,
         }
+    }
+
+    fn run_end_of_turn_on_specials(&mut self) {
+        //let mut special_ids_run: Vec<SpecialIdentifier> = vec![];
     }
 
     pub fn drop_selection(&mut self) -> bool {
@@ -204,7 +208,8 @@ impl Game {
                 self.board
                     .activate_special_spawns(self.turns_passed, self.most_recent_special_kill_turn);
             }
-            //
+            // apply end of turn for each special that may exist
+            self.run_end_of_turn_on_specials();
         }
 
         self.step_improvement_queue();

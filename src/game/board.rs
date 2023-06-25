@@ -2,10 +2,9 @@ use crate::game::being::Being;
 use crate::game::player::Player;
 use crate::game::randomizer;
 use crate::game::randomizer::{Weight, WeightedRandomizer, WeightedRandomizerType};
-use crate::game::special::SpecialGenerator;
+use crate::game::special::{SpecialGenerator, SpecialIdentifier};
 use crate::game::stat_modifiers::BaseDamageDecrease;
 use crate::game::tile::{Tile, TileInfo, TilePosition, TileType, Wind8};
-use crate::game::Game;
 
 use std::io::Write;
 const _LOG_FILE: &str = "core_log.txt";
@@ -23,6 +22,8 @@ fn _log(msg: &String) {
 }
 
 pub struct Board {
+    w: usize,
+    h: usize,
     // access by [y][x] where [0][0] is top left corner
     tiles: Vec<Vec<Tile>>,
     tile_randomizer: WeightedRandomizer,
@@ -60,6 +61,8 @@ impl Board {
         // create the board
 
         let mut b = Self {
+            w,
+            h,
             tiles: vec![],
             tile_randomizer,
             num_specials: 0,
@@ -90,17 +93,23 @@ impl Board {
         dmg
     }
 
-    pub fn specials(&self) -> Vec<(TilePosition, Tile)> {
-        if self.num_specials == 0 {
+    pub fn specials(&self, omit_ids: &Vec<SpecialIdentifier>) -> Vec<(TilePosition, Tile, SpecialIdentifier)> {
+        if self.num_specials <= omit_ids.len() {
             return vec![];
         }
         let mut specials_vec = Vec::with_capacity(self.num_specials);
         for (x, col) in self.tiles.iter().enumerate() {
             for (y, tile) in col.iter().enumerate() {
                 if tile.tile_type == TileType::Special {
-                    specials_vec.push((TilePosition::new(y as isize, x as isize), *tile));
-                    if specials_vec.len() == self.num_specials {
-                        return specials_vec;
+                    if let TileInfo::Special(special) = tile.tile_info {
+                        if !omit_ids.contains(&special.id) {
+                            specials_vec.push((TilePosition::new(y as isize, x as isize), *tile, special.id));
+                        }
+                        if specials_vec.len() + omit_ids.len() == self.num_specials {
+                            return specials_vec;
+                        }
+                    } else {
+                        unreachable!("tile.tile_type was TileType::Special, but if let TileInfo::Special(special) = tile.tile_info gave false");
                     }
                 }
             }
@@ -115,7 +124,8 @@ impl Board {
     }
 
     fn remove_selection_starting_at(&mut self, mut pos: TilePosition) {
-        loop {
+        let num_tiles = self.w * self.h;
+        for _ in 0..num_tiles {
             if self.position_valid(pos) {
                 let relative_next = self.tiles[pos.y as usize][pos.x as usize].next_selection;
                 self.tiles[pos.y as usize][pos.x as usize].next_selection = Wind8::None;
@@ -127,6 +137,7 @@ impl Board {
                 unreachable!("remove_selection_starting_at found that either the given position or one of the positions down the selection trail points off the board");
             }
         }
+        unreachable!("selection loops");
     }
 
     pub fn select_tile(&mut self, position_to_select: TilePosition) -> bool {
@@ -149,12 +160,12 @@ impl Board {
                     return false;
                 }
                 let mut p: TilePosition = pos;
-                loop {
+                // loop should never hit any tile more than once
+                for _ in 0..(self.w * self.h) {
                     if p == position_to_select {
                         self.remove_selection_starting_at(p);
                         return true;
                     }
-                    // TODO: make this limited to the number of tiles in case there is some sort of invalid board
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     match relative_next {
                         Wind8::None => {
@@ -177,6 +188,7 @@ impl Board {
                         }
                     };
                 }
+                unreachable!("while trying to select a tile, the end of the selection couldn't be found; logically this could only happen if the selection creates a loop, which is unintended");
             }
             None => {
                 self.selection_start = Some(position_to_select);
@@ -191,7 +203,8 @@ impl Board {
             Some(pos) => {
                 let mut p: TilePosition = pos;
                 num_tiles += 1;
-                loop {
+                let num_tiles_in_board = self.w * self.h;
+                for _ in 0..num_tiles_in_board {
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
 
                     match relative_next {
@@ -203,6 +216,7 @@ impl Board {
                         return true;
                     }
                 }
+                unreachable!("selection loops");
             }
             None => false,
         }
@@ -221,7 +235,9 @@ impl Board {
                     return (0, 0);
                 }
                 let mut p = pos;
-                loop {
+                let num_tiles = self.w * self.h;
+                let mut found_the_end = false;
+                for _ in 0..num_tiles {
                     match self.tiles[p.y as usize][p.x as usize].tile_type {
                         TileType::Sword => num_weapons += 1,
                         TileType::Enemy | TileType::Special => num_beings += 1,
@@ -229,13 +245,17 @@ impl Board {
                     };
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     match relative_next {
-                        Wind8::None => break,
+                        Wind8::None => {
+                            found_the_end = true;
+                            break;
+                        },
                         _ => {
                             p = p + TilePosition::from(relative_next);
                             assert!(self.position_valid(p));
                         }
                     };
                 }
+                assert!(found_the_end);
             }
             None => {}
         };
@@ -259,8 +279,9 @@ impl Board {
             Some(pos) => {
                 self.selection_start = None;
                 let mut p = pos;
-                loop {
-                    // TODO: limit this loop
+                let num_tiles = self.w * self.h;
+                let mut found_the_end = false;
+                for _ in 0..num_tiles {
                     assert!(self.position_valid(p));
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
                     if slash
@@ -275,10 +296,14 @@ impl Board {
                     }
                     self.tiles[p.y as usize][p.x as usize].next_selection = Wind8::None;
                     match relative_next {
-                        Wind8::None => break,
+                        Wind8::None => {
+                            found_the_end = true;
+                            break;
+                        },
                         _ => p = p + TilePosition::from(relative_next),
                     };
                 }
+                assert!(found_the_end);
             }
             None => {}
         }
@@ -310,14 +335,9 @@ impl Board {
         enemy: &Being,
         special_generator: &mut SpecialGenerator,
     ) {
-        let h = self.tiles.len();
-        if h == 0 || self.tiles[0].is_empty() {
-            return;
-        }
-        let w = self.tiles[0].len();
-        for x in 0..w {
+        for x in 0..self.w {
             let mut num_falling = 0;
-            for y in (0..h).rev() {
+            for y in (0..self.h).rev() {
                 match self.tiles[y][x].tile_type {
                     TileType::None => num_falling += 1,
                     _ => {
@@ -376,51 +396,27 @@ impl Board {
 
     // special end of turn
 
-    pub fn run_end_of_turn_on_specials(&mut self, game: &mut Game) {
-        if self.num_specials == 0 {
-            return;
-        }
-        let mut found_specials = 0;
-        for (x, col) in self.tiles.iter_mut().enumerate() {
-            for (y, tile) in col.iter_mut().enumerate() {
-                if let TileInfo::Special(ref mut special) = tile.tile_info {
-                    found_specials += 1;
-                    special.end_of_turn(game, TilePosition::new(y as isize, x as isize));
-                    if found_specials == self.num_specials {
-                        return;
-                    }
-                }
-            }
-        }
-        unreachable!("while finding all the specials and calling run_end_of_turn on each, not all of the specials were found according to self.num_specials");
-    }
-
     pub fn swap_positions_random_if_none(
         &mut self,
         tp1_opt: Option<TilePosition>,
         tp2_opt: Option<TilePosition>,
     ) {
-        let h = self.tiles.len();
-        if h == 0 || self.tiles[0].is_empty() {
-            return;
-        }
-        let w = self.tiles[0].len();
         let mut serialized_pos1 = match tp1_opt {
-            Some(tp1) => (tp1.y as usize) + (tp1.x as usize) * h,
-            None => randomizer::evenly_distributed_random(w * h),
+            Some(tp1) => (tp1.y as usize) + (tp1.x as usize) * self.h,
+            None => randomizer::evenly_distributed_random(self.w * self.h),
         };
         let serialized_pos2 = match tp2_opt {
             Some(tp2) => {
-                let val = (tp2.y as usize) + (tp2.x as usize) * h;
+                let val = (tp2.y as usize) + (tp2.x as usize) * self.h;
                 if val == serialized_pos1 && tp1_opt.is_none() {
                     // pos1 was randomized to be the same as the set pos2, so re-randomize pos1
-                    let rand = randomizer::evenly_distributed_random(w * h - 1);
+                    let rand = randomizer::evenly_distributed_random(self.w * self.h - 1);
                     serialized_pos1 = if rand < val { rand } else { rand + 1 };
                 }
                 val
             }
             None => {
-                let rand = randomizer::evenly_distributed_random(w * h - 1);
+                let rand = randomizer::evenly_distributed_random(self.w * self.h - 1);
                 if rand < serialized_pos1 {
                     rand
                 } else {
@@ -429,12 +425,12 @@ impl Board {
             }
         };
         let pos1 = TilePosition::new(
-            (serialized_pos1 % h) as isize,
-            (serialized_pos1 / w) as isize,
+            (serialized_pos1 % self.h) as isize,
+            (serialized_pos1 / self.w) as isize,
         );
         let pos2 = TilePosition::new(
-            (serialized_pos2 % h) as isize,
-            (serialized_pos2 / w) as isize,
+            (serialized_pos2 % self.h) as isize,
+            (serialized_pos2 / self.w) as isize,
         );
         let tmp = self.tiles[pos2.y as usize][pos2.x as usize];
         self.tiles[pos2.y as usize][pos2.x as usize] = self.tiles[pos1.y as usize][pos1.x as usize];
@@ -465,26 +461,22 @@ impl Board {
         // oh boy here we go
         self.selection_start = None;
         let mut randomizer = WeightedRandomizer::new(WeightedRandomizerType::MetaSubAllOnObtain);
-        let h = self.tiles.len();
-        if h == 0 || self.tiles[0].is_empty() {
-            return;
-        }
-        let w = self.tiles[0].len();
         // convention: for given val, w, h; y = val % h and x = val / w
-        for val in 0..(w * h) {
+        for val in 0..(self.w * self.h) {
             randomizer.set_weight(val, 1);
         }
         let first_idx_2d = randomizer.weighted_random().expect("");
-        let first_pos = TilePosition::new((first_idx_2d % h) as isize, (first_idx_2d / w) as isize);
+        let first_pos = TilePosition::new((first_idx_2d % self.h) as isize, (first_idx_2d / self.w) as isize);
         let mut first = self.tiles[first_pos.y as usize][first_pos.x as usize];
         first.next_selection = Wind8::None;
         let mut target_pos = first_pos;
-        for _ in 0..(w * h) {
+        let num_tiles = self.w * self.h;
+        for _ in 0..num_tiles {
             let value_opt = randomizer.weighted_random();
             match value_opt {
                 Some(value) => {
                     let rand_tile_pos =
-                        TilePosition::new((value % h) as isize, (value / w) as isize);
+                        TilePosition::new((value % self.h) as isize, (value / self.w) as isize);
                     self.tiles[target_pos.y as usize][target_pos.x as usize] =
                         self.tiles[rand_tile_pos.y as usize][rand_tile_pos.x as usize];
                     self.tiles[target_pos.y as usize][target_pos.x as usize].next_selection =

@@ -4,6 +4,7 @@ use crate::game::tile::TilePosition;
 use crate::game::Game;
 
 pub type SpecialIdentifier = usize;
+pub type ModifiesBoard = bool;
 
 #[derive(Copy, Clone)]
 pub enum SpecialType {
@@ -62,6 +63,17 @@ impl From<SpecialType> for SpecialInfo {
     }
 }
 
+impl From<&SpecialInfo> for ModifiesBoard {
+    fn from(value: &SpecialInfo) -> Self {
+        match *value {
+            SpecialInfo::Boss => false,
+            SpecialInfo::Unstable => true,
+            SpecialInfo::WeaponsMaster => false,
+            SpecialInfo::Undead(_) => false,
+        }
+    }
+}
+
 impl SpecialType {
     pub fn name_description(self) -> (&'static str, &'static str) {
         match self {
@@ -88,7 +100,7 @@ impl Default for SpecialGenerator {
         for st in 0..(SpecialType::COUNT as usize) {
             type_randomizer.set_weight(st, 1);
         }
-        Self { 
+        Self {
             unused_id: 0,
             type_randomizer,
         }

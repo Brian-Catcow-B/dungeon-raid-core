@@ -97,7 +97,10 @@ impl Board {
         self.w * self.h
     }
 
-    pub fn specials(&self, omit_ids: &Vec<SpecialIdentifier>) -> Vec<(TilePosition, Tile, SpecialIdentifier)> {
+    pub fn specials(
+        &self,
+        omit_ids: &Vec<SpecialIdentifier>,
+    ) -> Vec<(TilePosition, Tile, SpecialIdentifier)> {
         if self.num_specials <= omit_ids.len() {
             return vec![];
         }
@@ -107,7 +110,11 @@ impl Board {
                 if tile.tile_type == TileType::Special {
                     if let TileInfo::Special(special) = tile.tile_info {
                         if !omit_ids.contains(&special.id) {
-                            specials_vec.push((TilePosition::new(y as isize, x as isize), *tile, special.id));
+                            specials_vec.push((
+                                TilePosition::new(y as isize, x as isize),
+                                *tile,
+                                special.id,
+                            ));
                         }
                         if specials_vec.len() + omit_ids.len() == self.num_specials {
                             return specials_vec;
@@ -253,7 +260,7 @@ impl Board {
                         Wind8::None => {
                             found_the_end = true;
                             break;
-                        },
+                        }
                         _ => {
                             p = p + TilePosition::from(relative_next);
                             assert!(self.position_valid(p));
@@ -304,7 +311,7 @@ impl Board {
                         Wind8::None => {
                             found_the_end = true;
                             break;
-                        },
+                        }
                         _ => p = p + TilePosition::from(relative_next),
                     };
                 }
@@ -482,7 +489,10 @@ impl Board {
             randomizer.set_weight(val, 1);
         }
         let first_idx_2d = randomizer.weighted_random().expect("");
-        let first_pos = TilePosition::new((first_idx_2d % self.h) as isize, (first_idx_2d / self.w) as isize);
+        let first_pos = TilePosition::new(
+            (first_idx_2d % self.h) as isize,
+            (first_idx_2d / self.w) as isize,
+        );
         let mut first = self.tiles[first_pos.y as usize][first_pos.x as usize];
         first.next_selection = Wind8::None;
         let mut target_pos = first_pos;

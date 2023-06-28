@@ -2,7 +2,7 @@ mod board;
 use board::Board;
 
 pub mod tile;
-use tile::{Tile, TilePosition, TileType, TileInfo};
+use tile::{Tile, TileInfo, TilePosition, TileType};
 
 mod collection_multipliers;
 use collection_multipliers::CollectionMultipliers;
@@ -16,7 +16,7 @@ mod player;
 use player::{Player, PlayerIsDead};
 
 mod special;
-use special::{SpecialGenerator, SpecialIdentifier, SpecialInfo, ModifiesBoard};
+use special::{ModifiesBoard, SpecialGenerator, SpecialIdentifier, SpecialInfo};
 
 mod stat_modifiers;
 
@@ -130,13 +130,15 @@ impl Game {
                 special_ids_run.push(*id);
                 if let TileInfo::Special(special) = tile.tile_info {
                     // will this special modify the board
-                    let modifies_board = ModifiesBoard::from(special.special_info);
+                    let modifies_board = ModifiesBoard::from(&special.special_info);
                     // apply special end of turn
                     match special.special_info {
-                        SpecialInfo::Boss => {},
-                        SpecialInfo::Unstable => self.board.swap_positions_random_if_none(Some(*tile_pos), None),
-                        SpecialInfo::WeaponsMaster => {},
-                        SpecialInfo::Undead(_) => {},
+                        SpecialInfo::Boss => {}
+                        SpecialInfo::Unstable => self
+                            .board
+                            .swap_positions_random_if_none(Some(*tile_pos), None),
+                        SpecialInfo::WeaponsMaster => {}
+                        SpecialInfo::Undead(_) => {}
                     }
                     // if the special modified the board, we need to re-obtain all the specials
                     // since they could have moved positions

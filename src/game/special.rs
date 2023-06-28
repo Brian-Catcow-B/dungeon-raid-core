@@ -1,6 +1,6 @@
 use crate::game::being::{Being, BeingType};
 use crate::game::randomizer::WeightedRandomizer;
-use crate::game::tile::TilePosition;
+use crate::game::tile::{TileInfo, TilePosition};
 use crate::game::Game;
 
 pub type SpecialIdentifier = usize;
@@ -10,7 +10,7 @@ pub type ModifiesBoard = bool;
 pub enum SpecialType {
     Boss,
     Unstable,
-    WeaponsMaster,
+    Precise,
     Undead,
     COUNT,
 }
@@ -22,7 +22,7 @@ impl TryFrom<usize> for SpecialType {
         match value {
             0 => Ok(Self::Boss),
             1 => Ok(Self::Unstable),
-            2 => Ok(Self::WeaponsMaster),
+            2 => Ok(Self::Precise),
             3 => Ok(Self::Undead),
             _ => Err("invalid value given to SpecialType::TryFrom<usize>"),
         }
@@ -34,7 +34,7 @@ impl From<SpecialType> for Being {
         let num_den = match value {
             SpecialType::Boss => (2, 1),
             SpecialType::Unstable => (4, 3),
-            SpecialType::WeaponsMaster => (1, 1),
+            SpecialType::Precise => (1, 1),
             SpecialType::Undead => (4, 3),
             SpecialType::COUNT => unreachable!(""),
         };
@@ -47,7 +47,7 @@ type Reanimated = bool;
 pub enum SpecialInfo {
     Boss,
     Unstable,
-    WeaponsMaster,
+    Precise,
     Undead(Reanimated),
 }
 
@@ -56,20 +56,9 @@ impl From<SpecialType> for SpecialInfo {
         match value {
             SpecialType::Boss => Self::Boss,
             SpecialType::Unstable => Self::Unstable,
-            SpecialType::WeaponsMaster => Self::WeaponsMaster,
+            SpecialType::Precise => Self::Precise,
             SpecialType::Undead => Self::Undead(false),
             SpecialType::COUNT => unreachable!(""),
-        }
-    }
-}
-
-impl From<&SpecialInfo> for ModifiesBoard {
-    fn from(value: &SpecialInfo) -> Self {
-        match *value {
-            SpecialInfo::Boss => false,
-            SpecialInfo::Unstable => true,
-            SpecialInfo::WeaponsMaster => false,
-            SpecialInfo::Undead(_) => false,
         }
     }
 }
@@ -79,7 +68,7 @@ impl SpecialType {
         match self {
             Self::Boss => ("Boss", "A much stronger enemy"),
             Self::Unstable => ("Unstable", "Teleports to a random tile every turn"),
-            Self::WeaponsMaster => ("Weapons Master", "Attacks cannot be blunted"),
+            Self::Precise => ("Precise", "Attacks cannot be blunted"),
             Self::Undead => (
                 "Undead",
                 "When killed the first time, reanimates with half HP",
@@ -138,20 +127,25 @@ impl Special {
 
     pub fn blunt(&mut self, blunting: usize) {
         match self.special_type {
-            SpecialType::WeaponsMaster => {}
+            SpecialType::Precise => {}
             _ => self.being.blunt(blunting),
         }
     }
 
-    pub fn end_of_turn(&mut self, game: &mut Game, tile_position: TilePosition) {
-        match self.special_type {
-            SpecialType::Boss => {}
-            SpecialType::Unstable => game
-                .board
-                .swap_positions_random_if_none(Some(tile_position), None),
-            SpecialType::WeaponsMaster => {}
-            SpecialType::Undead => {}
-            SpecialType::COUNT => unreachable!(""),
+    pub fn end_of_turn(game: &mut Game, tile_position: &TilePosition) -> ModifiesBoard {
+        if let TileInfo::Special(ref mut special) = game.board.mut_tile_at(tile_position).tile_info
+        {
+            match special.special_info {
+                SpecialInfo::Boss => false,
+                SpecialInfo::Unstable => {
+                    game.board.swap_position_with_random_other(tile_position);
+                    true
+                }
+                SpecialInfo::Precise => false,
+                SpecialInfo::Undead(_) => false,
+            }
+        } else {
+            unreachable!("Special::end_of_turn called with a TilePosition that does not correspond to a TileInfo::Special Tile");
         }
     }
 }

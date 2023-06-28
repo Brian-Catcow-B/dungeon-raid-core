@@ -23,13 +23,13 @@ const PLAYER_START_WEAPON_DMG: usize = 3;
 const PLAYER_START_HP: usize = 50;
 const PLAYER_START_SH: usize = 3;
 
-const ENEMY_START_DMG: usize = 2;
+const ENEMY_START_DMG: usize = 1;
 const ENEMY_START_HP: usize = 5;
 const ENEMY_START_SH: usize = 0;
 
 const BOSS_START_DMG: usize = 7;
-const BOSS_START_HP: usize = 50;
-const BOSS_START_SH: usize = 4;
+const BOSS_START_HP: usize = 20;
+const BOSS_START_SH: usize = 3;
 
 const MIN_BASE_DAMAGE: usize = 1;
 

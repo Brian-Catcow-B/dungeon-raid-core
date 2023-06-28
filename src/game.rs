@@ -2,7 +2,7 @@ mod board;
 use board::Board;
 
 pub mod tile;
-use tile::{Tile, TileInfo, TilePosition, TileType};
+use tile::{Tile, TilePosition, TileType};
 
 mod collection_multipliers;
 use collection_multipliers::CollectionMultipliers;
@@ -16,7 +16,7 @@ mod player;
 use player::{Player, PlayerIsDead};
 
 mod special;
-use special::{ModifiesBoard, SpecialGenerator, SpecialIdentifier, SpecialInfo};
+use special::{Special, SpecialGenerator, SpecialIdentifier};
 
 mod stat_modifiers;
 
@@ -124,31 +124,16 @@ impl Game {
     fn run_end_of_turn_on_specials(&mut self) {
         let num_tiles = self.board.num_tiles();
         let mut special_ids_run: Vec<SpecialIdentifier> = Vec::with_capacity(num_tiles);
-        for _ in 0..num_tiles {
+        'outer: for _ in 0..num_tiles {
             let specials = self.board.specials(&special_ids_run);
-            for (tile_pos, tile, id) in specials.iter() {
+            for (tile_pos, _tile, id) in specials.iter() {
                 special_ids_run.push(*id);
-                if let TileInfo::Special(special) = tile.tile_info {
-                    // will this special modify the board
-                    let modifies_board = ModifiesBoard::from(&special.special_info);
-                    // apply special end of turn
-                    match special.special_info {
-                        SpecialInfo::Boss => {}
-                        SpecialInfo::Unstable => self
-                            .board
-                            .swap_positions_random_if_none(Some(*tile_pos), None),
-                        SpecialInfo::WeaponsMaster => {}
-                        SpecialInfo::Undead(_) => {}
-                    }
-                    // if the special modified the board, we need to re-obtain all the specials
-                    // since they could have moved positions
-                    if modifies_board {
-                        break;
-                    }
-                } else {
-                    unreachable!("Board::specials returned a vector with a Tile that does not have TileInfo::Special(special)");
+                let modifies_board = Special::end_of_turn(self, tile_pos);
+                if modifies_board {
+                    continue 'outer;
                 }
             }
+            return;
         }
         unreachable!("insane that we'd ever get here");
     }

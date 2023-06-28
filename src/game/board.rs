@@ -57,6 +57,8 @@ impl Board {
                 .expect("Weight::try_from errored where it never should");
             tile_randomizer.set_weight(tt, default_weight);
         }
+        // DEBUG STATEMENT for spawning in a bunch of bosses, or at least one at the beginning
+        tile_randomizer.set_weight(TileType::Special as usize, 1000);
 
         // create the board
 
@@ -97,6 +99,10 @@ impl Board {
         self.w * self.h
     }
 
+    pub fn mut_tile_at(&mut self, tp: &TilePosition) -> &mut Tile {
+        &mut self.tiles[tp.y as usize][tp.x as usize]
+    }
+
     pub fn specials(
         &self,
         omit_ids: &Vec<SpecialIdentifier>,
@@ -105,8 +111,8 @@ impl Board {
             return vec![];
         }
         let mut specials_vec = Vec::with_capacity(self.num_specials);
-        for (x, col) in self.tiles.iter().enumerate() {
-            for (y, tile) in col.iter().enumerate() {
+        for (y, col) in self.tiles.iter().enumerate() {
+            for (x, tile) in col.iter().enumerate() {
                 if tile.tile_type == TileType::Special {
                     if let TileInfo::Special(special) = tile.tile_info {
                         if !omit_ids.contains(&special.id) {
@@ -408,55 +414,26 @@ impl Board {
 
     // special end of turn
 
-    fn swap_positions(&mut self, tp1: TilePosition, tp2: TilePosition) {
+    pub fn swap_positions(&mut self, tp1: &TilePosition, tp2: &TilePosition) {
         let tmp = self.tiles[tp2.y as usize][tp2.x as usize];
         self.tiles[tp2.y as usize][tp2.x as usize] = self.tiles[tp1.y as usize][tp1.x as usize];
         self.tiles[tp1.y as usize][tp1.x as usize] = tmp;
     }
 
-    pub fn swap_positions_random_if_none(
-        &mut self,
-        tp1_opt: Option<TilePosition>,
-        tp2_opt: Option<TilePosition>,
-    ) {
-        if let Some(tp1) = tp1_opt {
-            if let Some(tp2) = tp2_opt {
-                self.swap_positions(tp1, tp2);
-                return;
-            }
+    pub fn swap_position_with_random_other(&mut self, tp: &TilePosition) {
+        let serialized_tp = (tp.y as usize) + (tp.x as usize) * self.h;
+        // get value in [0, num_tiles - 2]
+        let mut serialized_random_other_tp =
+            randomizer::evenly_distributed_random(self.num_tiles() - 2);
+        // map serialized_tp to self.num_tiles() - 1
+        if serialized_random_other_tp == serialized_tp {
+            serialized_random_other_tp = self.num_tiles() - 1;
         }
-        let mut serialized_pos1 = match tp1_opt {
-            Some(tp1) => (tp1.y as usize) + (tp1.x as usize) * self.h,
-            None => randomizer::evenly_distributed_random(self.num_tiles()),
-        };
-        let serialized_pos2 = match tp2_opt {
-            Some(tp2) => {
-                let val = (tp2.y as usize) + (tp2.x as usize) * self.h;
-                if val == serialized_pos1 && tp1_opt.is_none() {
-                    // pos1 was randomized to be the same as the set pos2, so re-randomize pos1
-                    let rand = randomizer::evenly_distributed_random(self.num_tiles() - 1);
-                    serialized_pos1 = if rand < val { rand } else { rand + 1 };
-                }
-                val
-            }
-            None => {
-                let rand = randomizer::evenly_distributed_random(self.num_tiles() - 1);
-                if rand < serialized_pos1 {
-                    rand
-                } else {
-                    rand + 1
-                }
-            }
-        };
-        let pos1 = TilePosition::new(
-            (serialized_pos1 % self.h) as isize,
-            (serialized_pos1 / self.w) as isize,
+        let random_other_tp = TilePosition::new(
+            (serialized_random_other_tp % self.h) as isize,
+            (serialized_random_other_tp / self.h) as isize,
         );
-        let pos2 = TilePosition::new(
-            (serialized_pos2 % self.h) as isize,
-            (serialized_pos2 / self.w) as isize,
-        );
-        self.swap_positions(pos1, pos2);
+        self.swap_positions(tp, &random_other_tp);
     }
 
     // ability functions

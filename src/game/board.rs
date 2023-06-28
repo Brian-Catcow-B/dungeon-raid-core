@@ -93,6 +93,10 @@ impl Board {
         dmg
     }
 
+    pub fn num_tiles(&self) -> usize {
+        self.w * self.h
+    }
+
     pub fn specials(&self, omit_ids: &Vec<SpecialIdentifier>) -> Vec<(TilePosition, Tile, SpecialIdentifier)> {
         if self.num_specials <= omit_ids.len() {
             return vec![];
@@ -124,7 +128,7 @@ impl Board {
     }
 
     fn remove_selection_starting_at(&mut self, mut pos: TilePosition) {
-        let num_tiles = self.w * self.h;
+        let num_tiles = self.num_tiles();
         for _ in 0..num_tiles {
             if self.position_valid(pos) {
                 let relative_next = self.tiles[pos.y as usize][pos.x as usize].next_selection;
@@ -161,7 +165,8 @@ impl Board {
                 }
                 let mut p: TilePosition = pos;
                 // loop should never hit any tile more than once
-                for _ in 0..(self.w * self.h) {
+                let num_tiles = self.num_tiles();
+                for _ in 0..num_tiles {
                     if p == position_to_select {
                         self.remove_selection_starting_at(p);
                         return true;
@@ -203,7 +208,7 @@ impl Board {
             Some(pos) => {
                 let mut p: TilePosition = pos;
                 num_tiles += 1;
-                let num_tiles_in_board = self.w * self.h;
+                let num_tiles_in_board = self.num_tiles();
                 for _ in 0..num_tiles_in_board {
                     let relative_next = self.tiles[p.y as usize][p.x as usize].next_selection;
 
@@ -235,7 +240,7 @@ impl Board {
                     return (0, 0);
                 }
                 let mut p = pos;
-                let num_tiles = self.w * self.h;
+                let num_tiles = self.num_tiles();
                 let mut found_the_end = false;
                 for _ in 0..num_tiles {
                     match self.tiles[p.y as usize][p.x as usize].tile_type {
@@ -279,7 +284,7 @@ impl Board {
             Some(pos) => {
                 self.selection_start = None;
                 let mut p = pos;
-                let num_tiles = self.w * self.h;
+                let num_tiles = self.num_tiles();
                 let mut found_the_end = false;
                 for _ in 0..num_tiles {
                     assert!(self.position_valid(p));
@@ -396,27 +401,39 @@ impl Board {
 
     // special end of turn
 
+    fn swap_positions(&mut self, tp1: TilePosition, tp2: TilePosition) {
+        let tmp = self.tiles[tp2.y as usize][tp2.x as usize];
+        self.tiles[tp2.y as usize][tp2.x as usize] = self.tiles[tp1.y as usize][tp1.x as usize];
+        self.tiles[tp1.y as usize][tp1.x as usize] = tmp;
+    }
+
     pub fn swap_positions_random_if_none(
         &mut self,
         tp1_opt: Option<TilePosition>,
         tp2_opt: Option<TilePosition>,
     ) {
+        if let Some(tp1) = tp1_opt {
+            if let Some(tp2) = tp2_opt {
+                self.swap_positions(tp1, tp2);
+                return;
+            }
+        }
         let mut serialized_pos1 = match tp1_opt {
             Some(tp1) => (tp1.y as usize) + (tp1.x as usize) * self.h,
-            None => randomizer::evenly_distributed_random(self.w * self.h),
+            None => randomizer::evenly_distributed_random(self.num_tiles()),
         };
         let serialized_pos2 = match tp2_opt {
             Some(tp2) => {
                 let val = (tp2.y as usize) + (tp2.x as usize) * self.h;
                 if val == serialized_pos1 && tp1_opt.is_none() {
                     // pos1 was randomized to be the same as the set pos2, so re-randomize pos1
-                    let rand = randomizer::evenly_distributed_random(self.w * self.h - 1);
+                    let rand = randomizer::evenly_distributed_random(self.num_tiles() - 1);
                     serialized_pos1 = if rand < val { rand } else { rand + 1 };
                 }
                 val
             }
             None => {
-                let rand = randomizer::evenly_distributed_random(self.w * self.h - 1);
+                let rand = randomizer::evenly_distributed_random(self.num_tiles() - 1);
                 if rand < serialized_pos1 {
                     rand
                 } else {
@@ -432,9 +449,7 @@ impl Board {
             (serialized_pos2 % self.h) as isize,
             (serialized_pos2 / self.w) as isize,
         );
-        let tmp = self.tiles[pos2.y as usize][pos2.x as usize];
-        self.tiles[pos2.y as usize][pos2.x as usize] = self.tiles[pos1.y as usize][pos1.x as usize];
-        self.tiles[pos1.y as usize][pos1.x as usize] = tmp;
+        self.swap_positions(pos1, pos2);
     }
 
     // ability functions
@@ -462,7 +477,8 @@ impl Board {
         self.selection_start = None;
         let mut randomizer = WeightedRandomizer::new(WeightedRandomizerType::MetaSubAllOnObtain);
         // convention: for given val, w, h; y = val % h and x = val / w
-        for val in 0..(self.w * self.h) {
+        let num_tiles = self.num_tiles();
+        for val in 0..num_tiles {
             randomizer.set_weight(val, 1);
         }
         let first_idx_2d = randomizer.weighted_random().expect("");
@@ -470,7 +486,6 @@ impl Board {
         let mut first = self.tiles[first_pos.y as usize][first_pos.x as usize];
         first.next_selection = Wind8::None;
         let mut target_pos = first_pos;
-        let num_tiles = self.w * self.h;
         for _ in 0..num_tiles {
             let value_opt = randomizer.weighted_random();
             match value_opt {

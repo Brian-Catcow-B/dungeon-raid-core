@@ -57,8 +57,6 @@ impl Board {
                 .expect("Weight::try_from errored where it never should");
             tile_randomizer.set_weight(tt, default_weight);
         }
-        // DEBUG STATEMENT for spawning in a bunch of bosses, or at least one at the beginning
-        tile_randomizer.set_weight(TileType::Special as usize, 1000);
 
         // create the board
 

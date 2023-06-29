@@ -82,7 +82,7 @@ impl SpecialType {
                 "Undead",
                 "When killed the first time, reanimates with half HP",
             ),
-			Self::Resourceful => ("Resourceful", "At the end of each turn, defense gets set to the number of surrounding shields, attack is premanently increased by the number of surrounding swords, and health is increased by the number of surrounding health potions"),
+			Self::Resourceful => ("Resourceful", "For surrounding tiles, armor = shields, attack += swords, health += health potions"),
             Self::COUNT => unreachable!(""),
         }
     }

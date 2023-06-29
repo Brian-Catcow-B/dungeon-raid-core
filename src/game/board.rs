@@ -57,6 +57,8 @@ impl Board {
                 .expect("Weight::try_from errored where it never should");
             tile_randomizer.set_weight(tt, default_weight);
         }
+        // DEBUG: always start with a boss
+        tile_randomizer.set_weight(TileType::Special as usize, 1000);
 
         // create the board
 

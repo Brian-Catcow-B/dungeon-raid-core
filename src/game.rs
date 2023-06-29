@@ -121,7 +121,7 @@ impl Game {
         }
     }
 
-    fn run_end_of_turn_on_specials(&mut self) {
+    pub fn run_end_of_turn_on_specials(&mut self) {
         let num_tiles = self.board.num_tiles();
         let mut special_ids_run: Vec<SpecialIdentifier> = Vec::with_capacity(num_tiles);
         'outer: for _ in 0..num_tiles {
@@ -221,8 +221,6 @@ impl Game {
                 self.board
                     .activate_special_spawns(self.turns_passed, self.most_recent_special_kill_turn);
             }
-            // apply end of turn for each special that may exist
-            self.run_end_of_turn_on_specials();
         }
 
         self.step_improvement_queue();

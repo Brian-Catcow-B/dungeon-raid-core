@@ -434,6 +434,24 @@ impl Board {
         self.swap_positions(tp, &random_other_tp);
     }
 
+    pub fn num_surrounding_tiles_of_type(
+        &self,
+        tile_position: &TilePosition,
+        tile_type: TileType,
+    ) -> usize {
+        let mut num_surrounding = 0;
+        for w8_num in 0..8 {
+            let w8 = Wind8::try_from(w8_num as u8).expect("");
+            let pos = *tile_position + TilePosition::from(w8);
+            if self.position_valid(pos)
+                && self.tiles[pos.y as usize][pos.x as usize].tile_type == tile_type
+            {
+                num_surrounding += 1;
+            }
+        }
+        num_surrounding
+    }
+
     // ability functions
 
     pub fn replace_tiles(

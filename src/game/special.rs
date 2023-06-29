@@ -1,17 +1,18 @@
 use crate::game::being::{Being, BeingType};
 use crate::game::randomizer::WeightedRandomizer;
-use crate::game::tile::{TileInfo, TilePosition};
+use crate::game::tile::{TileInfo, TilePosition, TileType};
 use crate::game::Game;
 
 pub type SpecialIdentifier = usize;
 pub type ModifiesBoard = bool;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum SpecialType {
     Boss,
     Unstable,
     Precise,
     Undead,
+    Resourceful,
     COUNT,
 }
 
@@ -24,6 +25,7 @@ impl TryFrom<usize> for SpecialType {
             1 => Ok(Self::Unstable),
             2 => Ok(Self::Precise),
             3 => Ok(Self::Undead),
+            4 => Ok(Self::Resourceful),
             _ => Err("invalid value given to SpecialType::TryFrom<usize>"),
         }
     }
@@ -36,9 +38,14 @@ impl From<SpecialType> for Being {
             SpecialType::Unstable => (4, 3),
             SpecialType::Precise => (1, 1),
             SpecialType::Undead => (4, 3),
+            SpecialType::Resourceful => (1, 1),
             SpecialType::COUNT => unreachable!(""),
         };
-        Being::new(BeingType::Special, num_den.0, num_den.1)
+        let mut being = Being::new(BeingType::Special, num_den.0, num_den.1);
+        if value == SpecialType::Resourceful {
+            being.max_shields = 8;
+        }
+        being
     }
 }
 
@@ -49,6 +56,7 @@ pub enum SpecialInfo {
     Unstable,
     Precise,
     Undead(Reanimated),
+    Resourceful,
 }
 
 impl From<SpecialType> for SpecialInfo {
@@ -58,6 +66,7 @@ impl From<SpecialType> for SpecialInfo {
             SpecialType::Unstable => Self::Unstable,
             SpecialType::Precise => Self::Precise,
             SpecialType::Undead => Self::Undead(false),
+            SpecialType::Resourceful => Self::Resourceful,
             SpecialType::COUNT => unreachable!(""),
         }
     }
@@ -73,6 +82,7 @@ impl SpecialType {
                 "Undead",
                 "When killed the first time, reanimates with half HP",
             ),
+			Self::Resourceful => ("Resourceful", "At the end of each turn, defense gets set to the number of surrounding shields, attack is premanently increased by the number of surrounding swords, and health is increased by the number of surrounding health potions"),
             Self::COUNT => unreachable!(""),
         }
     }
@@ -133,6 +143,15 @@ impl Special {
     }
 
     pub fn end_of_turn(game: &mut Game, tile_position: &TilePosition) -> ModifiesBoard {
+        let num_surrounding_shields = game
+            .board
+            .num_surrounding_tiles_of_type(tile_position, TileType::Shield);
+        let num_surrounding_swords = game
+            .board
+            .num_surrounding_tiles_of_type(tile_position, TileType::Sword);
+        let num_surrounding_potions = game
+            .board
+            .num_surrounding_tiles_of_type(tile_position, TileType::Potion);
         if let TileInfo::Special(ref mut special) = game.board.mut_tile_at(tile_position).tile_info
         {
             match special.special_info {
@@ -143,6 +162,12 @@ impl Special {
                 }
                 SpecialInfo::Precise => false,
                 SpecialInfo::Undead(_) => false,
+                SpecialInfo::Resourceful => {
+                    special.being.shields = num_surrounding_shields;
+                    special.being.base_output_damage += num_surrounding_swords;
+                    special.being.add_hit_points(num_surrounding_potions);
+                    false
+                }
             }
         } else {
             unreachable!("Special::end_of_turn called with a TilePosition that does not correspond to a TileInfo::Special Tile");

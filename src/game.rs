@@ -84,8 +84,11 @@ impl Game {
         &self.player
     }
 
-    pub fn improvement_choice_set(&self) -> &Option<ImprovementChoiceSet> {
-        &self.improvement_choice_set
+    pub fn improvement_choice_set(&self) -> Option<&ImprovementChoiceSet> {
+        match self.improvement_choice_set {
+            Some(ref ics) => Some(ics),
+            None => None,
+        }
     }
 
     pub fn incoming_damage(&self) -> usize {
@@ -107,7 +110,7 @@ impl Game {
         player_is_dead
     }
 
-    pub fn select_tile(&mut self, tile_position: TilePosition) -> bool {
+    pub fn select_tile(&mut self, tile_position: &TilePosition) -> bool {
         self.board.select_tile(tile_position)
     }
 
@@ -305,8 +308,8 @@ impl Game {
             .apply_gravity_and_randomize_new_tiles(&self.enemy, &mut self.special_generator);
     }
 
-    pub fn get_tile(&self, tile_position: TilePosition) -> Option<Tile> {
-        self.board.get_tile(tile_position)
+    pub fn get_tile(&self, tile_position: &TilePosition) -> Option<Tile> {
+        self.board.get_tile(&tile_position)
     }
 
     pub fn get_selection_start(&self) -> Option<TilePosition> {

@@ -180,17 +180,13 @@ pub enum TileInfo {
     None,
 }
 
-impl TryFrom<(TileType, &Being, &mut SpecialGenerator)> for TileInfo {
-    type Error = &'static str;
-
-    fn try_from(value: (TileType, &Being, &mut SpecialGenerator)) -> Result<Self, Self::Error> {
+impl From<(TileType, &Being, &mut SpecialGenerator)> for TileInfo {
+    fn from(value: (TileType, &Being, &mut SpecialGenerator)) -> Self {
         match value.0 {
-            TileType::Potion | TileType::Shield | TileType::Coin | TileType::Sword => {
-                Ok(Self::None)
-            }
-            TileType::Enemy => Ok(Self::Enemy(*value.1)),
-            TileType::Special => Ok(Self::Special(value.2.get())),
-            _ => Err("invalid TileType given for TileInfo::TryFrom<(TileType, &Being, &SpecialGenerator)>"),
+            TileType::Potion | TileType::Shield | TileType::Coin | TileType::Sword => Self::None,
+            TileType::Enemy => Self::Enemy(*value.1),
+            TileType::Special => Self::Special(value.2.get()),
+            TileType::None | TileType::COUNT => unreachable!(""),
         }
     }
 }

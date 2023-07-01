@@ -13,6 +13,7 @@ pub enum SpecialType {
     Precise,
     Undead,
     Resourceful,
+    Enlightener,
     COUNT,
 }
 
@@ -26,6 +27,7 @@ impl TryFrom<usize> for SpecialType {
             2 => Ok(Self::Precise),
             3 => Ok(Self::Undead),
             4 => Ok(Self::Resourceful),
+            5 => Ok(Self::Enlightener),
             _ => Err("invalid value given to SpecialType::TryFrom<usize>"),
         }
     }
@@ -39,10 +41,15 @@ impl From<SpecialType> for Being {
             SpecialType::Precise => (1, 1),
             SpecialType::Undead => (4, 3),
             SpecialType::Resourceful => (1, 1),
+            SpecialType::Enlightener => (2, 3),
             SpecialType::COUNT => unreachable!(""),
         };
         let mut being = Being::new(BeingType::Special, num_den.0, num_den.1);
         if value == SpecialType::Resourceful {
+            // the shields being set to 0 should be overridden because
+            // end_of_turn is run on specials after they spawn, but in
+            // case something ends up depending on shields being <= max_shields...
+            being.shields = 0;
             being.max_shields = 8;
         }
         being
@@ -50,6 +57,14 @@ impl From<SpecialType> for Being {
 }
 
 type Reanimated = bool;
+type TurnsUntilEnlighten = usize;
+// GAME_BALANCE: I have a gut feeling this maybe should be 4...
+macro_rules! ENLIGHTEN_COOLDOWN_MACRO {
+    () => {
+        3
+    };
+}
+const ENLIGHTEN_COOLDOWN: usize = ENLIGHTEN_COOLDOWN_MACRO!();
 #[derive(Copy, Clone)]
 pub enum SpecialInfo {
     Boss,
@@ -57,6 +72,7 @@ pub enum SpecialInfo {
     Precise,
     Undead(Reanimated),
     Resourceful,
+    Enlightener(TurnsUntilEnlighten),
 }
 
 impl From<SpecialType> for SpecialInfo {
@@ -67,6 +83,7 @@ impl From<SpecialType> for SpecialInfo {
             SpecialType::Precise => Self::Precise,
             SpecialType::Undead => Self::Undead(false),
             SpecialType::Resourceful => Self::Resourceful,
+            SpecialType::Enlightener => Self::Enlightener(ENLIGHTEN_COOLDOWN + 1),
             SpecialType::COUNT => unreachable!(""),
         }
     }
@@ -83,6 +100,8 @@ impl SpecialType {
                 "When killed the first time, reanimates with half HP",
             ),
 			Self::Resourceful => ("Resourceful", "For surrounding tiles, armor = shields, attack += swords, health += health potions"),
+            // RENAME: maybe "regular monster" will be called something different
+            Self::Enlightener => ("Enlightener", concat!("Every ", ENLIGHTEN_COOLDOWN_MACRO!(), " turns, a regular monster into a special monster")),
             Self::COUNT => unreachable!(""),
         }
     }
@@ -142,35 +161,78 @@ impl Special {
         }
     }
 
+    const END_OF_TURN_TILE_INFO_NOT_SPECIAL: &str = "Special::end_of_turn called with a TilePosition that does not correspond to a TileInfo::Special Tile";
     pub fn end_of_turn(game: &mut Game, tile_position: &TilePosition) -> ModifiesBoard {
-        let num_surrounding_shields = game
-            .board
-            .num_surrounding_tiles_of_type(tile_position, TileType::Shield);
-        let num_surrounding_swords = game
-            .board
-            .num_surrounding_tiles_of_type(tile_position, TileType::Sword);
-        let num_surrounding_potions = game
-            .board
-            .num_surrounding_tiles_of_type(tile_position, TileType::Potion);
-        if let TileInfo::Special(ref mut special) = game.board.mut_tile_at(tile_position).tile_info
-        {
-            match special.special_info {
-                SpecialInfo::Boss => false,
-                SpecialInfo::Unstable => {
-                    game.board.swap_position_with_random_other(tile_position);
-                    true
-                }
-                SpecialInfo::Precise => false,
-                SpecialInfo::Undead(_) => false,
-                SpecialInfo::Resourceful => {
+        let special_type =
+            if let TileInfo::Special(ref special) = game.board.tile_at(tile_position).tile_info {
+                special.special_type
+            } else {
+                unreachable!("{}", Self::END_OF_TURN_TILE_INFO_NOT_SPECIAL);
+            };
+        match special_type {
+            SpecialType::Boss => false,
+            SpecialType::Unstable => {
+                game.board.swap_position_with_random_other(tile_position);
+                true
+            }
+            SpecialType::Precise => false,
+            SpecialType::Undead => false,
+            SpecialType::Resourceful => {
+                let num_surrounding_shields = game
+                    .board
+                    .num_surrounding_tiles_of_type(tile_position, TileType::Shield);
+                let num_surrounding_swords = game
+                    .board
+                    .num_surrounding_tiles_of_type(tile_position, TileType::Sword);
+                let num_surrounding_potions = game
+                    .board
+                    .num_surrounding_tiles_of_type(tile_position, TileType::Potion);
+                if let TileInfo::Special(ref mut special) =
+                    game.board.mut_tile_at(tile_position).tile_info
+                {
                     special.being.shields = num_surrounding_shields;
                     special.being.base_output_damage += num_surrounding_swords;
                     special.being.add_hit_points(num_surrounding_potions);
-                    false
+                } else {
+                    unreachable!("{}", Self::END_OF_TURN_TILE_INFO_NOT_SPECIAL);
+                }
+                false
+            }
+            SpecialType::Enlightener => {
+                if let TileInfo::Special(ref mut special) =
+                    game.board.mut_tile_at(tile_position).tile_info
+                {
+                    if let SpecialInfo::Enlightener(ref mut turns_until_enlighten) =
+                        special.special_info
+                    {
+                        if *turns_until_enlighten == 0 {
+                            *turns_until_enlighten = ENLIGHTEN_COOLDOWN;
+                            match game.board.random_tile_of_type(TileType::Enemy) {
+                                Some(tile_position) => {
+                                    //let tile_info = TileInfo::from((TileType::Special, &game.enemy, &mut game.special_generator));
+                                    //*game.board.mut_tile_at(&tile_position) = Tile::new(TileType::Special, tile_info);
+                                    game.board.replace_tile(
+                                        &tile_position,
+                                        TileType::Special,
+                                        &game.enemy,
+                                        &mut game.special_generator,
+                                    );
+                                    true
+                                }
+                                None => false,
+                            }
+                        } else {
+                            *turns_until_enlighten -= 1;
+                            false
+                        }
+                    } else {
+                        unreachable!("SpecialType and SpecialInfo mismatch");
+                    }
+                } else {
+                    unreachable!("{}", Self::END_OF_TURN_TILE_INFO_NOT_SPECIAL);
                 }
             }
-        } else {
-            unreachable!("Special::end_of_turn called with a TilePosition that does not correspond to a TileInfo::Special Tile");
+            SpecialType::COUNT => unreachable!(""),
         }
     }
 }

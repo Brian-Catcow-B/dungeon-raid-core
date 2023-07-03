@@ -278,10 +278,7 @@ impl Board {
                             .slash(player.output_damage(num_beings, num_weapons))
                     {
                         destructing_tiles.push(*self.tile_at(&p));
-                        if self.tile_at(&p).tile_type == TileType::Special {
-                            self.num_specials -= 1;
-                        }
-                        *self.mut_tile_at(&p) = Tile::default();
+                        self.destroy_tile(&p);
                     }
                     self.mut_tile_at(&p).next_selection = Wind8::None;
                     match relative_next {
@@ -350,9 +347,9 @@ impl Board {
                 if tile_type == TileType::Special {
                     self.tile_randomizer
                         .set_weight(TileType::Special as usize, 0);
-                    self.num_specials += 1;
                 }
                 let tile_info = TileInfo::from((tile_type, enemy, &mut *special_generator));
+                self.meta_create_tile(tile_type);
                 self.tiles[y][x] = Tile::new(tile_type, tile_info);
             }
         }
@@ -391,18 +388,39 @@ impl Board {
             && (tile_pos.x as usize) < self.w
     }
 
-    fn serialize_tile_position(&self, tile_pos: &TilePosition) -> usize {
-        tile_pos.y as usize + tile_pos.x as usize * self.h
-    }
-
-    fn deserialize_tile_position(&self, s_tile_pos: usize) -> TilePosition {
-        TilePosition::new(
-            (s_tile_pos % self.h) as isize,
-            (s_tile_pos / self.h) as isize,
-        )
+    fn position_in_selection(&self, tile_pos: &TilePosition) -> bool {
+        match self.selection_start {
+            Some(ref pos) => {
+                let mut p = *pos;
+                let num_tiles = self.num_tiles();
+                for _ in 0..num_tiles {
+                    if p == *tile_pos {
+                        return true;
+                    }
+                    let n = self.tile_at(&p).next_selection;
+                    match n {
+                        Wind8::None => return false,
+                        _ => p = p + TilePosition::from(n),
+                    }
+                }
+                unreachable!("selection loops");
+            }
+            None => false,
+        }
     }
 
     fn enforce_selection_valid(&mut self) {
+        // connectedness
+        for y in 0..self.h {
+            for x in 0..self.w {
+                let p = TilePosition::new(y as isize, x as isize);
+                if self.tile_at(&p).next_selection != Wind8::None && !self.position_in_selection(&p)
+                {
+                    self.mut_tile_at(&p).next_selection = Wind8::None;
+                }
+            }
+        }
+        // type alignment
         let num_tiles = self.num_tiles();
         let mut p = match self.selection_start {
             Some(starting_pos) => starting_pos,
@@ -423,7 +441,34 @@ impl Board {
                 }
             }
         }
-        unreachable!("selection loops");
+    }
+
+    fn meta_destroy_tile(&mut self, tile_pos: &TilePosition) {
+        if self.tile_at(tile_pos).tile_type == TileType::Special {
+            self.num_specials -= 1;
+        }
+    }
+
+    fn destroy_tile(&mut self, tile_pos: &TilePosition) {
+        self.meta_destroy_tile(tile_pos);
+        *self.mut_tile_at(tile_pos) = Tile::default();
+    }
+
+    fn meta_create_tile(&mut self, tile_type: TileType) {
+        if tile_type == TileType::Special {
+            self.num_specials += 1;
+        }
+    }
+
+    fn serialize_tile_position(&self, tile_pos: &TilePosition) -> usize {
+        tile_pos.y as usize + tile_pos.x as usize * self.h
+    }
+
+    fn deserialize_tile_position(&self, s_tile_pos: usize) -> TilePosition {
+        TilePosition::new(
+            (s_tile_pos % self.h) as isize,
+            (s_tile_pos / self.h) as isize,
+        )
     }
 
     // special end of turn
@@ -454,13 +499,9 @@ impl Board {
         special_generator: &mut SpecialGenerator,
     ) {
         let tile_info = TileInfo::from((replace_type, enemy, &mut *special_generator));
-        if self.mut_tile_at(tile_pos).tile_type == TileType::Special {
-            self.num_specials -= 1;
-        }
+        self.meta_destroy_tile(tile_pos);
+        self.meta_create_tile(replace_type);
         *self.mut_tile_at(tile_pos) = Tile::new(replace_type, tile_info);
-        if replace_type == TileType::Special {
-            self.num_specials += 1;
-        }
         self.enforce_selection_valid();
     }
 
@@ -501,6 +542,28 @@ impl Board {
         num_surrounding
     }
 
+    pub fn destroy_3x3_centered_at(
+        &mut self,
+        center_pos: &TilePosition,
+        enemy: &Being,
+        special_generator: &mut SpecialGenerator,
+    ) -> Vec<Tile> {
+        let mut destroyed_tiles = Vec::with_capacity(3 * 3);
+        for w8_num in 0..8 {
+            let w8 = Wind8::try_from(w8_num as u8).expect("");
+            let p = *center_pos + TilePosition::from(w8);
+            if self.position_valid(&p) {
+                destroyed_tiles.push(*self.tile_at(&p));
+                self.destroy_tile(&p);
+            }
+        }
+        destroyed_tiles.push(*self.tile_at(center_pos));
+        self.destroy_tile(center_pos);
+        self.apply_gravity_and_randomize_new_tiles(enemy, special_generator);
+        self.enforce_selection_valid();
+        destroyed_tiles
+    }
+
     // ability functions
 
     pub fn replace_tiles(
@@ -510,17 +573,14 @@ impl Board {
         enemy: &Being,
         special_generator: &mut SpecialGenerator,
     ) {
-        for col in self.tiles.iter_mut() {
-            for tile in col.iter_mut() {
-                if tile.tile_type == from {
+        for y in 0..self.h {
+            for x in 0..self.w {
+                let p = TilePosition::new(y as isize, x as isize);
+                if self.tile_at(&p).tile_type == from {
                     let tile_info = TileInfo::from((to, enemy, &mut *special_generator));
-                    *tile = Tile::new(to, tile_info);
-                    if from == TileType::Special {
-                        self.num_specials -= 1;
-                    }
-                    if to == TileType::Special {
-                        self.num_specials += 1;
-                    }
+                    self.meta_destroy_tile(&p);
+                    self.meta_create_tile(to);
+                    *self.mut_tile_at(&p) = Tile::new(to, tile_info);
                 }
             }
         }

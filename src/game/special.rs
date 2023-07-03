@@ -9,11 +9,12 @@ pub type ModifiesBoard = bool;
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum SpecialType {
     Boss,
-    Unstable,
+    Chaotic,
     Precise,
     Undead,
     Resourceful,
     Enlightener,
+    Kamikaze,
     COUNT,
 }
 
@@ -23,11 +24,12 @@ impl TryFrom<usize> for SpecialType {
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(Self::Boss),
-            1 => Ok(Self::Unstable),
+            1 => Ok(Self::Chaotic),
             2 => Ok(Self::Precise),
             3 => Ok(Self::Undead),
             4 => Ok(Self::Resourceful),
             5 => Ok(Self::Enlightener),
+            6 => Ok(Self::Kamikaze),
             _ => Err("invalid value given to SpecialType::TryFrom<usize>"),
         }
     }
@@ -37,11 +39,12 @@ impl From<SpecialType> for Being {
     fn from(value: SpecialType) -> Being {
         let num_den = match value {
             SpecialType::Boss => (2, 1),
-            SpecialType::Unstable => (4, 3),
+            SpecialType::Chaotic => (4, 3),
             SpecialType::Precise => (1, 1),
             SpecialType::Undead => (4, 3),
             SpecialType::Resourceful => (1, 1),
             SpecialType::Enlightener => (2, 3),
+            SpecialType::Kamikaze => (9, 7),
             SpecialType::COUNT => unreachable!(""),
         };
         let mut being = Being::new(BeingType::Special, num_den.0, num_den.1);
@@ -57,33 +60,44 @@ impl From<SpecialType> for Being {
 }
 
 type Reanimated = bool;
+
 type TurnsUntilEnlighten = usize;
-// GAME_BALANCE: I have a gut feeling this maybe should be 4...
 macro_rules! ENLIGHTEN_COOLDOWN_MACRO {
     () => {
-        3
+        3 // GAME_BALANCE: 4?
     };
 }
 const ENLIGHTEN_COOLDOWN: usize = ENLIGHTEN_COOLDOWN_MACRO!();
+
+type TurnsUntilKamikaze = usize;
+macro_rules! KAMIKAZE_COUNTDOWN_MACRO {
+    () => {
+        4
+    };
+}
+const KAMIKAZE_COUNTDOWN: usize = KAMIKAZE_COUNTDOWN_MACRO!();
+
 #[derive(Copy, Clone)]
 pub enum SpecialInfo {
     Boss,
-    Unstable,
+    Chaotic,
     Precise,
     Undead(Reanimated),
     Resourceful,
     Enlightener(TurnsUntilEnlighten),
+    Kamikaze(TurnsUntilKamikaze),
 }
 
 impl From<SpecialType> for SpecialInfo {
     fn from(value: SpecialType) -> SpecialInfo {
         match value {
             SpecialType::Boss => Self::Boss,
-            SpecialType::Unstable => Self::Unstable,
+            SpecialType::Chaotic => Self::Chaotic,
             SpecialType::Precise => Self::Precise,
             SpecialType::Undead => Self::Undead(false),
             SpecialType::Resourceful => Self::Resourceful,
             SpecialType::Enlightener => Self::Enlightener(ENLIGHTEN_COOLDOWN + 1),
+            SpecialType::Kamikaze => Self::Kamikaze(KAMIKAZE_COUNTDOWN + 1),
             SpecialType::COUNT => unreachable!(""),
         }
     }
@@ -93,7 +107,7 @@ impl SpecialType {
     pub fn name_description(self) -> (&'static str, &'static str) {
         match self {
             Self::Boss => ("Boss", "A much stronger enemy"),
-            Self::Unstable => ("Unstable", "Teleports to a random tile every turn"),
+            Self::Chaotic => ("Chaotic", "Teleports to a random tile every turn"),
             Self::Precise => ("Precise", "Attacks cannot be blunted"),
             Self::Undead => (
                 "Undead",
@@ -102,6 +116,7 @@ impl SpecialType {
 			Self::Resourceful => ("Resourceful", "For surrounding tiles, armor = shields, attack += swords, health += health potions"),
             // RENAME: maybe "regular monster" will be called something different
             Self::Enlightener => ("Enlightener", concat!("Every ", ENLIGHTEN_COOLDOWN_MACRO!(), " turns, a regular monster into a special monster")),
+            Self::Kamikaze => ("Kamikaze", concat!("Explodes after ", KAMIKAZE_COUNTDOWN_MACRO!(), " turns, dealing half the player's max HP and destroying the surrounding tiles")),
             Self::COUNT => unreachable!(""),
         }
     }
@@ -162,6 +177,7 @@ impl Special {
     }
 
     const END_OF_TURN_TILE_INFO_NOT_SPECIAL: &str = "Special::end_of_turn called with a TilePosition that does not correspond to a TileInfo::Special Tile";
+    const SPECIAL_TYPE_SPECIAL_INFO_MISMATCH: &str = "SpecialType and SpecialInfo mismatch";
     pub fn end_of_turn(game: &mut Game, tile_position: &TilePosition) -> ModifiesBoard {
         let special_type =
             if let TileInfo::Special(ref special) = game.board.tile_at(tile_position).tile_info {
@@ -171,7 +187,7 @@ impl Special {
             };
         match special_type {
             SpecialType::Boss => false,
-            SpecialType::Unstable => {
+            SpecialType::Chaotic => {
                 game.board.swap_position_with_random_other(tile_position);
                 true
             }
@@ -226,7 +242,34 @@ impl Special {
                             false
                         }
                     } else {
-                        unreachable!("SpecialType and SpecialInfo mismatch");
+                        unreachable!("{}", Self::SPECIAL_TYPE_SPECIAL_INFO_MISMATCH);
+                    }
+                } else {
+                    unreachable!("{}", Self::END_OF_TURN_TILE_INFO_NOT_SPECIAL);
+                }
+            }
+            SpecialType::Kamikaze => {
+                if let TileInfo::Special(ref mut special) =
+                    game.board.mut_tile_at(tile_position).tile_info
+                {
+                    if let SpecialInfo::Kamikaze(ref mut turns_until_kamikaze) =
+                        special.special_info
+                    {
+                        if *turns_until_kamikaze == 0 {
+                            game.board.destroy_3x3_centered_at(
+                                tile_position,
+                                &game.enemy,
+                                &mut game.special_generator,
+                            );
+                            game.player
+                                .take_damage(game.player.being.max_hit_points / 2);
+                            true
+                        } else {
+                            *turns_until_kamikaze -= 1;
+                            false
+                        }
+                    } else {
+                        unreachable!("{}", Self::SPECIAL_TYPE_SPECIAL_INFO_MISMATCH);
                     }
                 } else {
                     unreachable!("{}", Self::END_OF_TURN_TILE_INFO_NOT_SPECIAL);

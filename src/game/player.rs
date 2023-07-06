@@ -11,15 +11,23 @@ use crate::game::ABILITY_SLOTS;
 pub struct Player {
     pub being: Being,
     pub coin_cents: usize,
+    pub coin_cents_per_purchase: usize,
     pub excess_shield_cents: usize,
+    pub excess_shield_cents_per_upgrade: usize,
     pub experience_point_cents: usize,
+    pub experience_point_cents_per_level_up: usize,
     pub stat_modifiers: PlayerStatModifiers,
     pub abilities: Vec<Option<Ability>>,
 }
 
-pub const COIN_CENTS_PER_PURCHASE: usize = 1000;
-pub const EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
-pub const EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 300;
+// GAME_BALANCE: heck all of this...
+
+pub const STARTING_COIN_CENTS_PER_PURCHASE: usize = 1000;
+pub const NUM_DEN_C_COIN_CENTS_SCALING: (usize, usize, usize) = (99, 100, 500);
+pub const STARTING_EXCESS_SHIELD_CENTS_PER_UPGRADE: usize = 1000;
+pub const NUM_DEN_C_EXCESS_SHIELD_CENTS_SCALING: (usize, usize, usize) = (99, 100, 500);
+pub const STARTING_EXPERIENCE_POINT_CENTS_PER_LEVEL_UP: usize = 300;
+pub const NUM_DEN_C_EXPERIENCE_POINT_CENTS_SCALING: (usize, usize, usize) = (99, 100, 500);
 
 impl Default for Player {
     fn default() -> Self {
@@ -30,8 +38,11 @@ impl Default for Player {
         Self {
             being: Being::new(BeingType::Player, 1, 1),
             coin_cents: 0,
+            coin_cents_per_purchase: STARTING_COIN_CENTS_PER_PURCHASE,
             excess_shield_cents: 0,
+            excess_shield_cents_per_upgrade: STARTING_EXCESS_SHIELD_CENTS_PER_UPGRADE,
             experience_point_cents: 0,
+            experience_point_cents_per_level_up: STARTING_EXPERIENCE_POINT_CENTS_PER_LEVEL_UP,
             stat_modifiers: PlayerStatModifiers::default(),
             abilities,
         }
@@ -66,19 +77,31 @@ impl Player {
     }
 
     pub fn add_coins(&mut self, coin_tiles_collected: usize) -> NumPurchases {
-        rollover_add(
+        let rollover = rollover_add(
             &mut self.coin_cents,
             coin_tiles_collected * self.stat_modifiers.percent_gold_per_coin,
-            COIN_CENTS_PER_PURCHASE,
-        )
+            self.coin_cents_per_purchase,
+        );
+        for _ in 0..rollover {
+            self.coin_cents_per_purchase *= NUM_DEN_C_COIN_CENTS_SCALING.0;
+            self.coin_cents_per_purchase /= NUM_DEN_C_COIN_CENTS_SCALING.1;
+            self.coin_cents_per_purchase += NUM_DEN_C_COIN_CENTS_SCALING.2;
+        }
+        rollover
     }
 
     fn add_excess_shields(&mut self, excess_shields_to_add: usize) -> NumUpgrades {
-        rollover_add(
+        let rollover = rollover_add(
             &mut self.excess_shield_cents,
             excess_shields_to_add * self.stat_modifiers.percent_upgrade_points_per_shield,
-            EXCESS_SHIELD_CENTS_PER_UPGRADE,
-        )
+            self.excess_shield_cents_per_upgrade,
+        );
+        for _ in 0..rollover {
+            self.excess_shield_cents_per_upgrade *= NUM_DEN_C_EXCESS_SHIELD_CENTS_SCALING.0;
+            self.excess_shield_cents_per_upgrade /= NUM_DEN_C_EXCESS_SHIELD_CENTS_SCALING.1;
+            self.excess_shield_cents_per_upgrade += NUM_DEN_C_EXCESS_SHIELD_CENTS_SCALING.2;
+        }
+        rollover
     }
 
     pub fn add_shields(&mut self, shield_tiles_collected: usize) -> NumUpgrades {
@@ -92,11 +115,17 @@ impl Player {
         &mut self,
         experience_point_tiles_collected: usize,
     ) -> NumLevelUps {
-        rollover_add(
+        let rollover = rollover_add(
             &mut self.experience_point_cents,
             experience_point_tiles_collected * self.stat_modifiers.percent_xp_per_experience_point,
-            EXPERIENCE_POINT_CENTS_PER_LEVEL_UP,
-        )
+            self.experience_point_cents_per_level_up,
+        );
+        for _ in 0..rollover {
+            self.experience_point_cents_per_level_up *= NUM_DEN_C_EXPERIENCE_POINT_CENTS_SCALING.0;
+            self.experience_point_cents_per_level_up /= NUM_DEN_C_EXPERIENCE_POINT_CENTS_SCALING.1;
+            self.experience_point_cents_per_level_up += NUM_DEN_C_EXPERIENCE_POINT_CENTS_SCALING.2;
+        }
+        rollover
     }
 
     // improvements

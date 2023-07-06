@@ -228,7 +228,7 @@ impl Tile {
         }
     }
 
-    pub fn slash(&mut self, damage: usize) -> Destroyed {
+    pub fn hit(&mut self, damage: usize) -> Destroyed {
         match self.tile_info {
             TileInfo::Enemy(ref mut being) => being.take_damage(damage),
             TileInfo::Special(ref mut special) => special.take_damage(damage),

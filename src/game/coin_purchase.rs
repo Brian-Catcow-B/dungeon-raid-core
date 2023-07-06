@@ -109,8 +109,8 @@ impl From<&CoinPurchase> for ImprovementChoiceDisplay {
             CoinPurchasePieceType::COUNT => unreachable!(""),
         };
         description += match value.coin_purchase_type {
-            CoinPurchaseType::Defense => "defense by ",
-            CoinPurchaseType::Attack => "attack by ",
+            CoinPurchaseType::Defense => "defense +",
+            CoinPurchaseType::Attack => "attack +",
         };
         let inc_string = match value.coin_purchase_info {
             CoinPurchaseInfo::Defense(inc) => format!("{}", inc),

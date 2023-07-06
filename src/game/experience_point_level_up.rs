@@ -69,14 +69,14 @@ impl StatLevelUpInfo {
     pub fn name_description(self) -> (&'static str, String) {
         match self {
             Self::MaxHitPoints(hp_inc) => {
-                ("Health", format!("Increase max hit points by {}", hp_inc))
+                ("Health", format!("Increase max hit points +{}", hp_inc))
             }
             Self::BaseOutputDamage(bod_inc) => {
-                ("Damage", format!("Increase base damage by {}", bod_inc))
+                ("Damage", format!("Increase base damage +{}", bod_inc))
             }
             Self::ArmorPerShield(aps_inc) => (
                 "Armor Proficiency",
-                format!("Increase armor per collected shield by {}", aps_inc),
+                format!("Increase armor per collected shield +{}", aps_inc),
             ),
         }
     }

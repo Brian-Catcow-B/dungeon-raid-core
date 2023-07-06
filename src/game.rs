@@ -142,7 +142,7 @@ impl Game {
     }
 
     pub fn drop_selection(&mut self) -> bool {
-        let (slash, vec) = self.board.drop_selection(
+        let (hit, vec) = self.board.drop_selection(
             &self.player,
             self.collection_multipliers.weapon_collection_multiplier,
         );
@@ -168,7 +168,7 @@ impl Game {
         }
         self.collection_multipliers = CollectionMultipliers::default();
 
-        if slash {
+        if hit {
             // collection
             if potions > 0 {
                 self.player.add_hit_points(potions);
@@ -228,7 +228,7 @@ impl Game {
 
         self.step_improvement_queue();
 
-        slash
+        hit
     }
 
     pub fn choose_improvements(&mut self, indeces: &Vec<usize>) {

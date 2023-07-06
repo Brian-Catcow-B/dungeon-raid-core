@@ -66,14 +66,14 @@ pub struct ShieldUpgrade {
 
 impl From<&ShieldUpgrade> for ImprovementChoiceDisplay {
     fn from(value: &ShieldUpgrade) -> Self {
-        let mut description = String::from("Upgrade ");
+        let mut description = String::new();
         description += match value.shield_upgrade_type {
-            ShieldUpgradeType::Defense => "Defense by ",
-            ShieldUpgradeType::BaseDamage => "Base Damage by ",
-            ShieldUpgradeType::Blunting => "Blunting by ",
-            ShieldUpgradeType::GoldPerCoin => "Gold per Coin by ",
-            ShieldUpgradeType::HitPointsPerPotion => "Hit Points per Potion by ",
-            ShieldUpgradeType::UpgradePointsPerShield => "Upgrade-Points per Shield by ",
+            ShieldUpgradeType::Defense => "Defense +",
+            ShieldUpgradeType::BaseDamage => "Base Damage +",
+            ShieldUpgradeType::Blunting => "Blunting +",
+            ShieldUpgradeType::GoldPerCoin => "Gold per Coin +",
+            ShieldUpgradeType::HitPointsPerPotion => "Hit Points per Potion +",
+            ShieldUpgradeType::UpgradePointsPerShield => "Upgrade-Points per Shield +",
             ShieldUpgradeType::COUNT => unreachable!(""),
         };
         let info_string;

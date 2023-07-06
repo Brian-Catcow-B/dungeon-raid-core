@@ -136,20 +136,6 @@ impl Board {
         unreachable!("self.num_specials and the number of specials found in the tiles differ");
     }
 
-    fn remove_selection_starting_at(&mut self, pos: &TilePosition) {
-        let num_tiles = self.num_tiles();
-        let mut p = *pos;
-        for _ in 0..num_tiles {
-            let relative_next = self.tile_at(&p).next_selection;
-            self.mut_tile_at(&p).next_selection = Wind8::None;
-            match relative_next {
-                Wind8::None => return,
-                _ => p = p + TilePosition::from(relative_next),
-            };
-        }
-        unreachable!("selection loops");
-    }
-
     pub fn select_tile(&mut self, position_to_select: &TilePosition) -> bool {
         match self.selection_start {
             Some(ref pos) => {
@@ -192,72 +178,13 @@ impl Board {
         }
     }
 
-    fn selection_slashes(&self) -> bool {
-        let mut num_tiles = 0;
-        match self.selection_start {
-            Some(pos) => {
-                let mut p: TilePosition = pos;
-                num_tiles += 1;
-                let num_tiles_in_board = self.num_tiles();
-                for _ in 0..num_tiles_in_board {
-                    let relative_next = self.tile_at(&p).next_selection;
-                    match relative_next {
-                        Wind8::None => return false,
-                        _ => p = p + TilePosition::from(relative_next),
-                    };
-                    num_tiles += 1;
-                    if num_tiles >= MIN_DESTRUCTION_SELECTION {
-                        return true;
-                    }
-                }
-                unreachable!("selection loops");
-            }
-            None => false,
-        }
-    }
-
-    fn num_weapons_and_beings_in_selection(&self) -> (usize, usize) {
-        let mut num_weapons: usize = 0;
-        let mut num_beings: usize = 0;
-        match self.selection_start {
-            Some(ref pos) => {
-                if !self.tile_at(pos).tile_type.connects_with(TileType::Sword) {
-                    return (0, 0);
-                }
-                let mut p = *pos;
-                let num_tiles = self.num_tiles();
-                let mut found_the_end = false;
-                for _ in 0..num_tiles {
-                    match self.tile_at(&p).tile_type {
-                        TileType::Sword => num_weapons += 1,
-                        TileType::Enemy | TileType::Special => num_beings += 1,
-                        _ => {}
-                    };
-                    let relative_next = self.tile_at(&p).next_selection;
-                    match relative_next {
-                        Wind8::None => {
-                            found_the_end = true;
-                            break;
-                        }
-                        _ => {
-                            p = p + TilePosition::from(relative_next);
-                        }
-                    };
-                }
-                assert!(found_the_end);
-            }
-            None => {}
-        };
-        (num_weapons, num_beings)
-    }
-
     pub fn drop_selection(
         &mut self,
         player: &Player,
         weapon_collection_multiplier: usize,
     ) -> (bool, Vec<Tile>) {
-        let slash = self.selection_slashes();
-        let (num_weapons, num_beings) = if slash {
+        let hit = self.selection_hits();
+        let (num_weapons, num_beings) = if hit {
             let (nw, nb) = self.num_weapons_and_beings_in_selection();
             (nw * weapon_collection_multiplier, nb)
         } else {
@@ -272,10 +199,10 @@ impl Board {
                 let mut found_the_end = false;
                 for _ in 0..num_tiles {
                     let relative_next = self.tile_at(&p).next_selection;
-                    if slash
+                    if hit
                         && self
                             .mut_tile_at(&p)
-                            .slash(player.output_damage(num_beings, num_weapons))
+                            .hit(player.output_damage(num_beings, num_weapons))
                     {
                         destructing_tiles.push(*self.tile_at(&p));
                         self.destroy_tile(&p);
@@ -293,7 +220,7 @@ impl Board {
             }
             None => {}
         }
-        (slash, destructing_tiles)
+        (hit, destructing_tiles)
     }
 
     pub fn get_tile(&self, tile_position: &TilePosition) -> Option<Tile> {
@@ -409,6 +336,44 @@ impl Board {
         }
     }
 
+    fn selection_hits(&self) -> bool {
+        let mut num_tiles = 0;
+        match self.selection_start {
+            Some(pos) => {
+                let mut p: TilePosition = pos;
+                num_tiles += 1;
+                let num_tiles_in_board = self.num_tiles();
+                for _ in 0..num_tiles_in_board {
+                    let relative_next = self.tile_at(&p).next_selection;
+                    match relative_next {
+                        Wind8::None => return false,
+                        _ => p = p + TilePosition::from(relative_next),
+                    };
+                    num_tiles += 1;
+                    if num_tiles >= MIN_DESTRUCTION_SELECTION {
+                        return true;
+                    }
+                }
+                unreachable!("selection loops");
+            }
+            None => false,
+        }
+    }
+
+    fn remove_selection_starting_at(&mut self, pos: &TilePosition) {
+        let num_tiles = self.num_tiles();
+        let mut p = *pos;
+        for _ in 0..num_tiles {
+            let relative_next = self.tile_at(&p).next_selection;
+            self.mut_tile_at(&p).next_selection = Wind8::None;
+            match relative_next {
+                Wind8::None => return,
+                _ => p = p + TilePosition::from(relative_next),
+            };
+        }
+        unreachable!("selection loops");
+    }
+
     fn enforce_selection_valid(&mut self) {
         // connectedness
         for y in 0..self.h {
@@ -441,6 +406,41 @@ impl Board {
                 }
             }
         }
+    }
+
+    fn num_weapons_and_beings_in_selection(&self) -> (usize, usize) {
+        let mut num_weapons: usize = 0;
+        let mut num_beings: usize = 0;
+        match self.selection_start {
+            Some(ref pos) => {
+                if !self.tile_at(pos).tile_type.connects_with(TileType::Sword) {
+                    return (0, 0);
+                }
+                let mut p = *pos;
+                let num_tiles = self.num_tiles();
+                let mut found_the_end = false;
+                for _ in 0..num_tiles {
+                    match self.tile_at(&p).tile_type {
+                        TileType::Sword => num_weapons += 1,
+                        TileType::Enemy | TileType::Special => num_beings += 1,
+                        _ => {}
+                    };
+                    let relative_next = self.tile_at(&p).next_selection;
+                    match relative_next {
+                        Wind8::None => {
+                            found_the_end = true;
+                            break;
+                        }
+                        _ => {
+                            p = p + TilePosition::from(relative_next);
+                        }
+                    };
+                }
+                assert!(found_the_end);
+            }
+            None => {}
+        };
+        (num_weapons, num_beings)
     }
 
     fn meta_destroy_tile(&mut self, tile_pos: &TilePosition) {

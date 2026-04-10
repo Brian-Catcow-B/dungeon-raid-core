@@ -145,6 +145,10 @@ impl Game {
         unreachable!("insane that we'd ever get here");
     }
 
+    pub fn cancel_selection(&mut self) {
+        self.board.cancel_selection();
+    }
+
     pub fn drop_selection(&mut self) -> bool {
         let (hit, vec) = self.board.drop_selection(
             &self.player,

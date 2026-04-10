@@ -178,6 +178,15 @@ impl Board {
         }
     }
 
+    pub fn cancel_selection(&mut self) {
+        self.selection_start = None;
+        for col in self.tiles.iter_mut() {
+            for tile in col.iter_mut() {
+                tile.next_selection = Wind8::None;
+            }
+        }
+    }
+
     pub fn drop_selection(
         &mut self,
         player: &Player,

@@ -80,6 +80,10 @@ impl Default for Game {
 }
 
 impl Game {
+    pub fn turns_passed(&self) -> usize {
+        self.turns_passed
+    }
+
     pub fn player(&self) -> &Player {
         &self.player
     }

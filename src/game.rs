@@ -80,6 +80,10 @@ impl Default for Game {
 }
 
 impl Game {
+    pub fn turns_passed(&self) -> usize {
+        self.turns_passed
+    }
+
     pub fn player(&self) -> &Player {
         &self.player
     }
@@ -139,6 +143,48 @@ impl Game {
             return;
         }
         unreachable!("insane that we'd ever get here");
+    }
+
+    pub fn cancel_selection(&mut self) {
+        self.board.cancel_selection();
+    }
+
+    pub fn selection_yield_coins_hp_armor_shieldpoints_damage(&self) -> (usize, usize, usize, usize, usize) {
+        let selected_tiles = self.board.selection_tiles();
+        let (mut potions, mut shields, mut coins, mut weapons, mut is_attacking_enemy) = (0, 0, 0, 0, false);
+        for &selected_tile in selected_tiles.iter() {
+            match selected_tile.tile_type {
+                TileType::Coin => {
+                    coins += self.collection_multipliers.coin_collection_multiplier;
+                }
+                TileType::Sword => {
+                    weapons += self.collection_multipliers.weapon_collection_multiplier;
+                }
+                TileType::Potion => {
+                    potions += 1;
+                }
+                TileType::Shield => {
+                    shields += self.collection_multipliers.shield_collection_multiplier;
+                }
+                TileType::Enemy |
+                TileType::Special => {
+                    is_attacking_enemy = true;
+                }
+                TileType::None => {unreachable!("TileType::None")}
+                TileType::COUNT => {unreachable!("TileType::COUNT")}
+            }
+        }
+        let coinincrease = coins * self.player.stat_modifiers.percent_gold_per_coin;
+        let hpincrease = potions * self.player.stat_modifiers.hit_points_per_potion;
+        let mut armor_calc_being = self.player.being;
+        let excess_shields = armor_calc_being.add_shields(shields, self.player.stat_modifiers.armor_per_shield);
+        let armorincrease = armor_calc_being.shields - self.player.being.shields;
+        let shieldpointincrease = excess_shields * self.player.stat_modifiers.percent_upgrade_points_per_shield;
+        let mut damage = weapons * self.player.being.weapon_output_damage;
+        if is_attacking_enemy {
+            damage += self.player.being.base_output_damage;
+        }
+        (coinincrease, hpincrease, armorincrease, shieldpointincrease, damage)
     }
 
     pub fn drop_selection(&mut self) -> bool {

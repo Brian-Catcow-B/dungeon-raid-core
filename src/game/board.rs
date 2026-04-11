@@ -178,6 +178,37 @@ impl Board {
         }
     }
 
+    pub fn cancel_selection(&mut self) {
+        self.selection_start = None;
+        for col in self.tiles.iter_mut() {
+            for tile in col.iter_mut() {
+                tile.next_selection = Wind8::None;
+            }
+        }
+    }
+
+    pub fn selection_tiles(&self) -> Vec<Tile> {
+        let mut selection_tiles: Vec<Tile> = vec![];
+        if let Some(pos) = self.selection_start {
+            let mut p = pos;
+            let num_tiles = self.num_tiles();
+            let mut found_the_end = false;
+            for _ in 0..num_tiles {
+                let relative_next = self.tile_at(&p).next_selection;
+                selection_tiles.push(*self.tile_at(&p));
+                match relative_next {
+                    Wind8::None => {
+                        found_the_end = true;
+                        break;
+                    }
+                    _ => p = p + TilePosition::from(relative_next),
+                };
+            }
+            assert!(found_the_end);
+        }
+        selection_tiles
+    }
+
     pub fn drop_selection(
         &mut self,
         player: &Player,
@@ -191,34 +222,31 @@ impl Board {
             (0, 0)
         };
         let mut destructing_tiles: Vec<Tile> = vec![];
-        match self.selection_start {
-            Some(pos) => {
-                self.selection_start = None;
-                let mut p = pos;
-                let num_tiles = self.num_tiles();
-                let mut found_the_end = false;
-                for _ in 0..num_tiles {
-                    let relative_next = self.tile_at(&p).next_selection;
-                    if hit
-                        && self
-                            .mut_tile_at(&p)
-                            .hit(player.output_damage(num_beings, num_weapons))
-                    {
-                        destructing_tiles.push(*self.tile_at(&p));
-                        self.destroy_tile(&p);
-                    }
-                    self.mut_tile_at(&p).next_selection = Wind8::None;
-                    match relative_next {
-                        Wind8::None => {
-                            found_the_end = true;
-                            break;
-                        }
-                        _ => p = p + TilePosition::from(relative_next),
-                    };
+        if let Some(pos) = self.selection_start {
+            self.selection_start = None;
+            let mut p = pos;
+            let num_tiles = self.num_tiles();
+            let mut found_the_end = false;
+            for _ in 0..num_tiles {
+                let relative_next = self.tile_at(&p).next_selection;
+                if hit
+                    && self
+                        .mut_tile_at(&p)
+                        .hit(player.output_damage(num_beings, num_weapons))
+                {
+                    destructing_tiles.push(*self.tile_at(&p));
+                    self.destroy_tile(&p);
                 }
-                assert!(found_the_end);
+                self.mut_tile_at(&p).next_selection = Wind8::None;
+                match relative_next {
+                    Wind8::None => {
+                        found_the_end = true;
+                        break;
+                    }
+                    _ => p = p + TilePosition::from(relative_next),
+                };
             }
-            None => {}
+            assert!(found_the_end);
         }
         (hit, destructing_tiles)
     }
